@@ -1,0 +1,15 @@
+/* Design token sederhana. Ganti nilai di sini, seluruh app ikut berubah. */
+:root {
+  --color-primary: #1d4ed8;
+  --color-primary-dark: #1e40af;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-bg: #ffffff;
+  --color-bg-soft: #f3f4f6;
+  --color-border: #e5e7eb;
+
+  --radius: 8px;
+  --navbar-height: 64px;
+  --container-width: 1120px;
+  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.2);
+}

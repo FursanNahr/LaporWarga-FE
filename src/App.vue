@@ -1,7 +1,4 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <HelloWorld />
+  <!-- App.vue sengaja tipis. Layout & halaman diatur oleh router. -->
+  <RouterView />
 </template>
