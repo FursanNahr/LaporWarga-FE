@@ -14,24 +14,49 @@ const konfirmasi = () => {
 </script>
 
 <template>
-  <section class="container page">
-    <h1>Beranda</h1>
-    <p>Halaman ini contoh pemakaian layout, navbar, dan modal.</p>
+  <section class="mx-auto w-full max-w-[1120px] px-4 py-8">
+    <!-- Banner tes: hapus kalau Tailwind sudah terbukti aktif -->
+    <div
+      class="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+    >
+      Tailwind aktif ✅
+    </div>
 
-    <button class="btn btn-primary" type="button" @click="showModal = true">Buka modal</button>
+    <h1 class="text-3xl font-bold text-gray-900">Beranda</h1>
+    <p class="mt-2 mb-6 text-gray-600">
+      Halaman ini contoh pemakaian layout, navbar, dan modal.
+    </p>
+
+    <button
+      type="button"
+      class="cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
+      @click="showModal = true"
+    >
+      Buka modal
+    </button>
 
     <BaseModal v-model="showModal" title="Konfirmasi">
       <p>Isi modal ditulis di sini. Bisa teks, form, atau komponen lain.</p>
 
       <!-- slot "footer" opsional, dipakai untuk tombol aksi -->
       <template #footer>
-        <button class="btn" type="button" @click="showModal = false">Batal</button>
-        <button class="btn btn-primary" type="button" @click="konfirmasi">Lanjutkan</button>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2 text-gray-800 hover:bg-gray-100"
+            @click="showModal = false"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            class="cursor-pointer rounded-lg bg-blue-700 px-4 py-2 text-white hover:bg-blue-800"
+            @click="konfirmasi"
+          >
+            Lanjutkan
+          </button>
+        </div>
       </template>
     </BaseModal>
   </section>
 </template>
-
-<style scoped>
-.page { padding-top: 2rem; padding-bottom: 2rem; }
-</style>
