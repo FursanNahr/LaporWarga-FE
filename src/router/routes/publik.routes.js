@@ -21,6 +21,12 @@ export default [
         component: () => import('@/pages/publik/CariLaporanPage.vue'),
       },
       {
+        // (\\d+) = id harus angka
+        path: 'laporan/:id(\\d+)',
+        name: 'detail-laporan',
+        component: () => import('@/pages/publik/DetailLaporanPage.vue'),
+      },
+      {
         path: 'papan-transparansi',
         name: 'papan-transparansi',
         component: () => import('@/pages/publik/PapanTransparansiPage.vue'),

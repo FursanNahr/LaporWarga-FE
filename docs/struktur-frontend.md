@@ -81,6 +81,7 @@ LaporWarga-FE/
 │   │   ├── useAuth.js
 │   │   ├── useModal.js
 │   │   ├── usePagination.js
+│   │   ├── useGeolocation.js
 │   │   └── useToast.js
 │   │
 │   ├── constants/
@@ -102,13 +103,13 @@ LaporWarga-FE/
 │   │   │   ├── MasukPage.vue
 │   │   │   ├── DaftarPage.vue
 │   │   │   ├── TentangPage.vue
+│   │   │   ├── FeedPage.vue
 │   │   │   ├── KebijakanPrivasiPage.vue
 │   │   │   ├── SyaratKetentuanPage.vue
 │   │   │   └── KontakPage.vue
 │   │   ├── warga/
 │   │   │   ├── BuatLaporanPage.vue
 │   │   │   ├── LaporanSayaPage.vue
-│   │   │   ├── FeedPage.vue
 │   │   │   ├── NotifikasiPage.vue
 │   │   │   └── ProfilPage.vue
 │   │   ├── instansi/

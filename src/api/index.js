@@ -52,4 +52,14 @@ api.interceptors.response.use(
   }
 )
 
+// File yang disajikan BE (foto laporan, lampiran progres) ada di origin BE, bukan di /api.
+// BE mengirim path relatif seperti /uploads/reports/x.jpg; origin diambil dari VITE_API_BASE_URL.
+const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL, window.location.origin).origin
+
+export const assetUrl = (path) => {
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path)) return path
+  return `${apiOrigin}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
 export default api

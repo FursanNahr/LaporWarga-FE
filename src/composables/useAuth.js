@@ -1,14 +1,15 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ROLES } from '@/constants/roles'
 import { useAuthStore } from '@/stores/auth.store'
 
 // Rute "rumah" tiap role setelah login. Key = hasil getter `role` di auth.store.
 // Rute yang belum dibuat otomatis jatuh ke 'beranda' (lihat homeRoute),
 // jadi saat warga.routes.js dst. dibuat, pakai NAME route di bawah ini.
 const ROLE_HOME = {
-  warga: 'warga-feed',
-  instansi: 'instansi-daftar-laporan',
-  admin: 'admin-verifikasi-laporan',
+  [ROLES.WARGA]: 'warga-feed',
+  [ROLES.INSTANSI]: 'instansi-daftar-laporan',
+  [ROLES.ADMIN]: 'admin-verifikasi-laporan',
 }
 
 /**
