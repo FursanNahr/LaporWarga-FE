@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { ROLES } from '@/constants/roles'
+import { useNotifikasiStore } from '@/stores/notifikasi.store'
 import BaseButton from '@/components/common/BaseButton.vue'
 
 // Daftar menu dipisah dari template. Mau tambah menu? Cukup tambah satu baris di sini.
@@ -20,7 +21,48 @@ const wargaMenus = [
   { label: 'Buat Laporan', to: { name: 'warga-buat-laporan' } },
   { label: 'Laporan Saya', to: { name: 'warga-laporan-saya' } },
 ]
-const visibleMenus = computed(() => (role.value === ROLES.WARGA ? [...menus, ...wargaMenus] : menus))
+
+// Menu tambahan khusus role instansi (nama route dari router/routes/instansi.routes.js).
+// `badge: true` = tampilkan jumlah notifikasi belum dibaca.
+const instansiMenus = [
+  { label: 'Daftar Laporan', to: { name: 'instansi-daftar-laporan' } },
+  { label: 'Notifikasi', to: { name: 'instansi-notifikasi' }, badge: true },
+]
+
+const visibleMenus = computed(() => {
+  if (role.value === ROLES.WARGA) return [...menus, ...wargaMenus]
+  if (role.value === ROLES.INSTANSI) return [...menus, ...instansiMenus]
+  return menus
+})
+
+// ---- Badge notifikasi (instansi) -------------------------------------------
+const notifikasi = useNotifikasiStore()
+const badgeText = computed(() => (notifikasi.unreadCount > 99 ? '99+' : String(notifikasi.unreadCount)))
+
+const POLL_INTERVAL_MS = 60000
+let pollTimer = null
+
+const stopPolling = () => {
+  clearInterval(pollTimer)
+  pollTimer = null
+}
+
+// Mulai (atau hentikan) polling setiap kali status login, role, atau akun berganti.
+watch(
+  () => [isLoggedIn.value, role.value, user.value?.id],
+  () => {
+    stopPolling()
+    notifikasi.reset()
+    if (isLoggedIn.value && role.value === ROLES.INSTANSI) {
+      notifikasi.fetchUnreadCount()
+      pollTimer = setInterval(() => {
+        if (!document.hidden) notifikasi.fetchUnreadCount() // tab di latar belakang: lewati
+      }, POLL_INTERVAL_MS)
+    }
+  },
+  { immediate: true },
+)
+onBeforeUnmount(stopPolling)
 
 const isOpen = ref(false) // state menu untuk tampilan mobile
 const route = useRoute()
@@ -47,7 +89,14 @@ watch(() => route.fullPath, () => (isOpen.value = false))
 
       <ul id="navbar-menu" class="navbar__menu" :class="{ 'is-open': isOpen }">
         <li v-for="menu in visibleMenus" :key="menu.label">
-          <RouterLink :to="menu.to" class="navbar__link">{{ menu.label }}</RouterLink>
+          <RouterLink :to="menu.to" class="navbar__link">
+            {{ menu.label }}
+            <span
+              v-if="menu.badge && notifikasi.unreadCount > 0"
+              class="navbar__badge"
+              :aria-label="`${notifikasi.unreadCount} belum dibaca`"
+            >{{ badgeText }}</span>
+          </RouterLink>
         </li>
 
         <li v-if="!isLoggedIn">
@@ -135,5 +184,19 @@ watch(() => route.fullPath, () => (isOpen.value = false))
     border-bottom: 1px solid var(--color-border);
   }
   .navbar__menu.is-open { display: flex; }
+}
+
+.navbar__badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.375rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--color-danger, #b91c1c);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
 }
 </style>

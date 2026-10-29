@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { assetUrl } from '@/api'
 import { laporanApi } from '@/api/laporan.api'
 import { actionsForStatus, REPORT_STATUS } from '@/constants/status'
+import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth.store'
 import { formatDate } from '@/utils/formatDate'
 import { formatReporter } from '@/utils/formatStatus'
@@ -15,11 +16,11 @@ import StatusBadge from '@/components/laporan/StatusBadge.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const toast = useToast()
 
 const report = ref(null)
 const loading = ref(true)
 const error = ref('')
-const success = ref('')
 
 let requestId = 0 // respons milik request lama dibuang
 async function fetchReport({ silent = false } = {}) {
@@ -48,7 +49,6 @@ watch(
   () => route.params.id,
   (id) => {
     if (!id) return
-    success.value = ''
     fetchReport()
   },
   { immediate: true },
@@ -79,7 +79,7 @@ const mapUrl = computed(() =>
 )
 
 async function handleUpdated() {
-  success.value = 'Progres berhasil diperbarui.'
+  toast.success('Progres berhasil diperbarui.')
   await fetchReport({ silent: true })
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -99,7 +99,6 @@ async function handleUpdated() {
         <StatusBadge :status="report.status" />
       </header>
 
-      <p v-if="success" class="page__success" role="status">{{ success }}</p>
       <p v-if="error" class="page__error" role="alert">{{ error }}</p>
 
       <BaseCard class="block">
@@ -174,12 +173,6 @@ async function handleUpdated() {
 }
 .page__header h1 { margin: 0; }
 .page__error { color: var(--color-danger, #b91c1c); }
-.page__success {
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-success, #15803d);
-  border-radius: var(--radius);
-}
 .block { margin-bottom: 1.5rem; }
 .block h2 { margin-top: 0; }
 .muted { color: var(--color-text-muted); }

@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { notifikasiApi } from '@/api/notifikasi.api'
 import { usePagination } from '@/composables/usePagination'
+import { useToast } from '@/composables/useToast'
 import { useNotifikasiStore } from '@/stores/notifikasi.store'
 import { formatDateTime } from '@/utils/formatDate'
 import BaseBadge from '@/components/common/BaseBadge.vue'
@@ -22,6 +23,7 @@ const props = defineProps({
 
 const router = useRouter()
 const store = useNotifikasiStore()
+const toast = useToast()
 
 // Jumlah belum dibaca ada di meta response, tapi usePagination tidak mengembalikan meta,
 // jadi dicegat di sini dan disimpan ke store (dipakai juga oleh badge di navbar).
@@ -37,19 +39,17 @@ const { items, loading, loadingMore, error, hasMore, load, loadMore } = usePagin
 })
 
 const unreadOnly = ref(false)
-const actionError = ref('')
 
 onMounted(() => load({}))
 watch(unreadOnly, (value) => load({ unread: value || undefined }))
 
 async function markRead(item) {
-  actionError.value = ''
   try {
     await notifikasiApi.markRead(item.id)
     item.isRead = true
     store.decrement()
   } catch (e) {
-    actionError.value = e.normalized?.message ?? 'Gagal menandai notifikasi.'
+    toast.error(e.normalized?.message ?? 'Gagal menandai notifikasi.')
   }
 }
 
@@ -59,15 +59,15 @@ async function open(item) {
 }
 
 async function markAllRead() {
-  actionError.value = ''
   try {
     await notifikasiApi.markAllRead()
     items.value.forEach((item) => {
       item.isRead = true
     })
     store.setUnreadCount(0)
+    toast.success('Semua notifikasi ditandai sudah dibaca.')
   } catch (e) {
-    actionError.value = e.normalized?.message ?? 'Gagal menandai semua notifikasi.'
+    toast.error(e.normalized?.message ?? 'Gagal menandai semua notifikasi.')
   }
 }
 </script>
@@ -84,7 +84,6 @@ async function markAllRead() {
       </BaseButton>
     </div>
 
-    <p v-if="actionError" class="notif__error" role="alert">{{ actionError }}</p>
     <p v-if="error" class="notif__error" role="alert">{{ error }}</p>
 
     <BaseLoading v-if="loading" text="Memuat notifikasi..." />
