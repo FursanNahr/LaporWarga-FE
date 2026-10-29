@@ -1,6 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { ROLES } from '@/constants/roles'
+import BaseButton from '@/components/common/BaseButton.vue'
 
 // Daftar menu dipisah dari template. Mau tambah menu? Cukup tambah satu baris di sini.
 // `to` memakai NAME route (lihat router/routes/publik.routes.js), bukan path.
@@ -10,9 +13,19 @@ const menus = [
   { label: 'Papan Transparansi', to: { name: 'papan-transparansi' } },
 ]
 
+const { isLoggedIn, user, role, logout } = useAuth()
+
+// Menu tambahan khusus role warga (nama route dari router/routes/warga.routes.js)
+const wargaMenus = [
+  { label: 'Buat Laporan', to: { name: 'warga-buat-laporan' } },
+  { label: 'Laporan Saya', to: { name: 'warga-laporan-saya' } },
+]
+const visibleMenus = computed(() => (role.value === ROLES.WARGA ? [...menus, ...wargaMenus] : menus))
+
 const isOpen = ref(false) // state menu untuk tampilan mobile
 const route = useRoute()
 
+// Tutup menu mobile otomatis setiap pindah halaman
 watch(() => route.fullPath, () => (isOpen.value = false))
 </script>
 
@@ -33,12 +46,17 @@ watch(() => route.fullPath, () => (isOpen.value = false))
       </button>
 
       <ul id="navbar-menu" class="navbar__menu" :class="{ 'is-open': isOpen }">
-        <li v-for="menu in menus" :key="menu.label">
+        <li v-for="menu in visibleMenus" :key="menu.label">
           <RouterLink :to="menu.to" class="navbar__link">{{ menu.label }}</RouterLink>
         </li>
-        <li>
+
+        <li v-if="!isLoggedIn">
           <RouterLink :to="{ name: 'masuk' }" class="btn btn-primary">Masuk</RouterLink>
         </li>
+        <template v-else>
+          <li class="navbar__user">{{ user?.name }}</li>
+          <li><BaseButton variant="secondary" @click="logout">Keluar</BaseButton></li>
+        </template>
       </ul>
     </nav>
   </header>
@@ -77,6 +95,7 @@ watch(() => route.fullPath, () => (isOpen.value = false))
   border-bottom: 2px solid transparent;
 }
 .navbar__link:hover { color: var(--color-text); }
+.navbar__user { color: var(--color-text); font-weight: 500; }
 
 /* Class ini otomatis dipasang vue-router pada link yang sedang aktif */
 .navbar__link.router-link-exact-active {

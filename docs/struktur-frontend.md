@@ -7,29 +7,29 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
 ## Struktur Direktori
 
 ```text
-LaporWarga-FE/
-├── public/
-├── src/
-│   ├── api/
-│   ├── assets/
-│   ├── components/
-│   ├── composables/
-│   ├── constants/
-│   ├── layouts/
-│   ├── pages/
-│   ├── router/
-│   ├── stores/
-│   ├── utils/
-│   ├── App.vue
-│   └── main.js
-├── .env
-├── .env.example
-├── .gitignore
-├── index.html
-├── jsconfig.json
-├── package.json
-├── README.md
-└── vite.config.js
+    LaporWarga-FE/
+    ├── public/
+    ├── src/
+    │   ├── api/
+    │   ├── assets/
+    │   ├── components/
+    │   ├── composables/
+    │   ├── constants/
+    │   ├── layouts/
+    │   ├── pages/
+    │   ├── router/
+    │   ├── stores/
+    │   ├── utils/
+    │   ├── App.vue
+    │   └── main.js
+    ├── .env
+    ├── .env.example
+    ├── .gitignore
+    ├── index.html
+    ├── jsconfig.json
+    ├── package.json
+    ├── README.md
+    └── vite.config.js
 ```
 
 *Catatan: Struktur di atas merupakan ringkasan. Rincian subfolder dan file beserta fungsinya dapat dilihat pada struktur lengkap di bawah ini.*
@@ -81,6 +81,7 @@ LaporWarga-FE/
 │   │   ├── useAuth.js
 │   │   ├── useModal.js
 │   │   ├── usePagination.js
+│   │   ├── useGeolocation.js
 │   │   └── useToast.js
 │   │
 │   ├── constants/
@@ -102,13 +103,13 @@ LaporWarga-FE/
 │   │   │   ├── MasukPage.vue
 │   │   │   ├── DaftarPage.vue
 │   │   │   ├── TentangPage.vue
+│   │   │   ├── FeedPage.vue
 │   │   │   ├── KebijakanPrivasiPage.vue
 │   │   │   ├── SyaratKetentuanPage.vue
 │   │   │   └── KontakPage.vue
 │   │   ├── warga/
 │   │   │   ├── BuatLaporanPage.vue
 │   │   │   ├── LaporanSayaPage.vue
-│   │   │   ├── FeedPage.vue
 │   │   │   ├── NotifikasiPage.vue
 │   │   │   └── ProfilPage.vue
 │   │   ├── instansi/

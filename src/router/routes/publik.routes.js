@@ -3,6 +3,8 @@
 //
 // Aturan: SELALU beri `name` pada route, lalu pakai :to="{ name: '...' }"
 // di RouterLink. Jadi kalau path berubah, link tidak perlu diedit.
+//
+// meta.guestOnly: hanya untuk yang belum login (dicek di router/index.js).
 export default [
   {
     path: '/',
@@ -19,6 +21,12 @@ export default [
         component: () => import('@/pages/publik/CariLaporanPage.vue'),
       },
       {
+        // (\\d+) = id harus angka
+        path: 'laporan/:id(\\d+)',
+        name: 'detail-laporan',
+        component: () => import('@/pages/publik/DetailLaporanPage.vue'),
+      },
+      {
         path: 'papan-transparansi',
         name: 'papan-transparansi',
         component: () => import('@/pages/publik/PapanTransparansiPage.vue'),
@@ -27,6 +35,13 @@ export default [
         path: 'masuk',
         name: 'masuk',
         component: () => import('@/pages/publik/MasukPage.vue'),
+        meta: { guestOnly: true },
+      },
+      {
+        path: 'daftar',
+        name: 'daftar',
+        component: () => import('@/pages/publik/DaftarPage.vue'),
+        meta: { guestOnly: true },
       },
     ],
   },

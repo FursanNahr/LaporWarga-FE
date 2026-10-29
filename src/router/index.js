@@ -1,13 +1,38 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
 import publikRoutes from './routes/publik.routes'
+import wargaRoutes from './routes/warga.routes'
 
-// Rute role lain (warga, instansi, admin) ditambahkan nanti dengan pola yang sama:
-// import wargaRoutes from './routes/warga.routes'  ->  ...wargaRoutes
+// Rute role lain (instansi, admin) ditambahkan nanti dengan pola yang sama:
+// import instansiRoutes from './routes/instansi.routes'  ->  tambahkan ke `routes` di bawah
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [...publikRoutes],
+  routes: [...publikRoutes, wargaRoutes],
   scrollBehavior: () => ({ top: 0 }),
+})
+
+let sessionChecked = false
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+
+  // Sekali saja saat app dibuka: validasi token lewat GET /auth/me
+  if (!sessionChecked) {
+    sessionChecked = true
+    if (auth.token) await auth.fetchMe()
+  }
+
+  // Yang sudah login tidak perlu melihat form masuk/daftar lagi
+  if (to.meta.guestOnly && auth.isLoggedIn) return { name: 'beranda' }
+
+  // to.meta = gabungan meta parent + child, jadi meta di rute induk (mis. /warga) ikut berlaku
+  if (to.meta.requiresAuth && !auth.isLoggedIn) {
+    return { name: 'masuk', query: { redirect: to.fullPath } }
+  }
+
+  // Salah role (mis. warga membuka halaman admin) -> kembali ke beranda
+  if (to.meta.roles && !to.meta.roles.includes(auth.role)) return { name: 'beranda' }
 })
 
 export default router
