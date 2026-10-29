@@ -1,8 +1,10 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { instansiApi } from '@/api/instansi.api'
+import { masterApi } from '@/api/master.api'
 import { usePagination } from '@/composables/usePagination'
 import { AGENCY_STATUSES, REPORT_STATUS } from '@/constants/status'
+import { useAuthStore } from '@/stores/auth.store'
 import { statusLabel } from '@/utils/formatStatus'
 import LaporanCard from '@/components/laporan/LaporanCard.vue'
 import BaseEmptyState from '@/components/common/BaseEmptyState.vue'
@@ -14,7 +16,34 @@ const { items, loading, loadingMore, error, hasMore, load, loadMore } = usePagin
   { limit: 12 },
 )
 
-const filters = reactive({ q: '', status: '' })
+const auth = useAuthStore()
+const filters = reactive({ q: '', status: '', subcategoryId: '', districtId: '' })
+
+// Pilihan filter dari master data. Kalau gagal dimuat, dropdown-nya saja yang disembunyikan.
+const categories = ref([])
+const districts = ref([])
+
+const myAgencyId = computed(() => auth.user?.agencyId ?? auth.user?.agency?.id ?? null)
+
+// Petugas hanya perlu subjenis milik instansinya (dicek jika data subjenis membawa info instansi).
+const belongsToMyAgency = (sub) => {
+  const subAgencyId = sub.agencyId ?? sub.agency?.id
+  return myAgencyId.value === null || subAgencyId === undefined || subAgencyId === myAgencyId.value
+}
+const subcategoryGroups = computed(() =>
+  categories.value
+    .map((category) => ({
+      ...category,
+      subcategories: (category.subcategories ?? []).filter(belongsToMyAgency),
+    }))
+    .filter((category) => category.subcategories.length > 0),
+)
+
+async function loadFilterOptions() {
+  const [cats, dists] = await Promise.allSettled([masterApi.categories(), masterApi.districts()])
+  if (cats.status === 'fulfilled') categories.value = cats.value.data?.data ?? []
+  if (dists.status === 'fulfilled') districts.value = dists.value.data?.data ?? []
+}
 
 // BE menolak kata kunci kurang dari 2 karakter, jadi tidak dikirim sampai cukup panjang.
 const keywordTooShort = computed(() => {
@@ -22,11 +51,18 @@ const keywordTooShort = computed(() => {
   return length > 0 && length < 2
 })
 
-const hasFilter = computed(() => Boolean(filters.q.trim() || filters.status))
+const hasFilter = computed(() =>
+  Boolean(filters.q.trim() || filters.status || filters.subcategoryId || filters.districtId),
+)
 
 const buildParams = () => {
   const q = filters.q.trim()
-  return { q: q.length >= 2 ? q : undefined, status: filters.status || undefined }
+  return {
+    q: q.length >= 2 ? q : undefined,
+    status: filters.status || undefined,
+    subcategoryId: filters.subcategoryId || undefined,
+    districtId: filters.districtId || undefined,
+  }
 }
 
 let lastKey = '' // jangan muat ulang kalau parameternya sama
@@ -38,15 +74,16 @@ function applyFilters() {
   load(params)
 }
 
-// Kata kunci: tunggu user berhenti mengetik. Status: langsung.
+// Kata kunci: tunggu user berhenti mengetik. Pilihan lain: langsung.
 let timer
 watch(() => filters.q, () => {
   clearTimeout(timer)
   timer = setTimeout(applyFilters, 400)
 })
-watch(() => filters.status, applyFilters)
+watch(() => [filters.status, filters.subcategoryId, filters.districtId], applyFilters)
 
 onMounted(() => {
+  loadFilterOptions()
   const params = buildParams()
   lastKey = JSON.stringify(params)
   load(params)
@@ -57,6 +94,8 @@ function resetFilters() {
   clearTimeout(timer)
   filters.q = ''
   filters.status = ''
+  filters.subcategoryId = ''
+  filters.districtId = ''
   applyFilters()
 }
 </script>
@@ -87,6 +126,28 @@ function resetFilters() {
           <option value="">Semua status</option>
           <option v-for="status in AGENCY_STATUSES" :key="status" :value="status">
             {{ statusLabel(status) }}
+          </option>
+        </select>
+      </div>
+
+      <div v-if="subcategoryGroups.length" class="filter__field">
+        <label for="agency-filter-subcategory">Jenis laporan</label>
+        <select id="agency-filter-subcategory" v-model="filters.subcategoryId" class="control">
+          <option value="">Semua jenis</option>
+          <optgroup v-for="category in subcategoryGroups" :key="category.id" :label="category.name">
+            <option v-for="sub in category.subcategories" :key="sub.id" :value="sub.id">
+              {{ sub.name }}
+            </option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div v-if="districts.length" class="filter__field">
+        <label for="agency-filter-district">Kecamatan</label>
+        <select id="agency-filter-district" v-model="filters.districtId" class="control">
+          <option value="">Semua kecamatan</option>
+          <option v-for="district in districts" :key="district.id" :value="district.id">
+            {{ district.name }}
           </option>
         </select>
       </div>

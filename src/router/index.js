@@ -2,13 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import publikRoutes from './routes/publik.routes'
 import wargaRoutes from './routes/warga.routes'
+import instansiRoutes from './routes/instansi.routes'
 
 // Rute role lain (instansi, admin) ditambahkan nanti dengan pola yang sama:
 // import instansiRoutes from './routes/instansi.routes'  ->  tambahkan ke `routes` di bawah
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [...publikRoutes, wargaRoutes],
+  routes: [...publikRoutes, wargaRoutes, instansiRoutes],
   scrollBehavior: () => ({ top: 0 }),
 })
 
