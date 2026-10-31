@@ -21,6 +21,13 @@ export default [
         component: () => import('@/pages/publik/CariLaporanPage.vue'),
       },
       {
+        // Feed boleh dilihat tanpa login. Halaman yang sama juga dipakai di rute
+        // 'warga-feed' (router/routes/warga.routes.js) supaya warga melihatnya di dashboard.
+        path: 'feed',
+        name: 'feed',
+        component: () => import('@/pages/publik/FeedPage.vue'),
+      },
+      {
         // (\\d+) = id harus angka
         path: 'laporan/:id(\\d+)',
         name: 'detail-laporan',

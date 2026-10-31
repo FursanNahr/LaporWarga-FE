@@ -11,6 +11,7 @@ import BaseButton from '@/components/common/BaseButton.vue'
 const menus = [
   { label: 'Beranda', to: { name: 'beranda' } },
   { label: 'Cari Laporan', to: { name: 'cari-laporan' } },
+  { label: 'Feed', to: { name: 'feed' } }, // baru
   { label: 'Papan Transparansi', to: { name: 'papan-transparansi' } },
 ]
 
@@ -20,6 +21,7 @@ const { isLoggedIn, user, role, logout } = useAuth()
 const wargaMenus = [
   { label: 'Buat Laporan', to: { name: 'warga-buat-laporan' } },
   { label: 'Laporan Saya', to: { name: 'warga-laporan-saya' } },
+  { label: 'Dasbor', to: { name: 'warga-feed' } }
 ]
 
 // Menu tambahan khusus role instansi (nama route dari router/routes/instansi.routes.js).

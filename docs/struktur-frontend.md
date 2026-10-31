@@ -45,6 +45,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── instansi.api.js
     │   │   ├── notifikasi.api.js
     │   │   ├── admin.api.js
+    │   │   ├── support.api.js
     │   │   └── master.api.js
     │   │
     │   ├── assets/
@@ -83,6 +84,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   └── laporan/              ← komponen khusus domain laporan
     │   │       ├── LaporanCard.vue
     │   │       ├── LaporanForm.vue
+    │   │       ├── FeedCard.vue
     │   │       ├── LaporanFilter.vue
     │   │       ├── StatusBadge.vue
     │   │       ├── ProgressUpdateForm.vue
