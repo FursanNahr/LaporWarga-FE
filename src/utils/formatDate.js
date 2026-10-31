@@ -29,3 +29,13 @@ export const formatDateTime = (value) => {
   const date = toDate(value)
   return date ? dateTimeFormat.format(date) : '-'
 }
+
+/** Sudah berapa lama sejak waktu itu: 'baru saja', '5 jam', '3 hari'. */
+export const formatAge = (value) => {
+  const date = toDate(value)
+  if (!date) return '-'
+  const hours = Math.floor((Date.now() - date.getTime()) / 3600000)
+  if (hours < 1) return 'baru saja'
+  if (hours < 24) return `${hours} jam`
+  return `${Math.floor(hours / 24)} hari`
+}

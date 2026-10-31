@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth.store'
 const ROLE_HOME = {
   [ROLES.WARGA]: 'warga-feed',
   [ROLES.INSTANSI]: 'instansi-daftar-laporan',
-  [ROLES.ADMIN]: 'admin-verifikasi-laporan',
+  [ROLES.ADMIN]: 'admin-dashboard',
 }
 
 /**

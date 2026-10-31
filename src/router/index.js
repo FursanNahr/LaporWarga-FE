@@ -3,13 +3,11 @@ import { useAuthStore } from '@/stores/auth.store'
 import publikRoutes from './routes/publik.routes'
 import wargaRoutes from './routes/warga.routes'
 import instansiRoutes from './routes/instansi.routes'
-
-// Rute role lain (instansi, admin) ditambahkan nanti dengan pola yang sama:
-// import instansiRoutes from './routes/instansi.routes'  ->  tambahkan ke `routes` di bawah
+import adminRoutes from './routes/admin.routes'
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [...publikRoutes, wargaRoutes, instansiRoutes],
+  routes: [...publikRoutes, wargaRoutes, instansiRoutes, adminRoutes],
   scrollBehavior: () => ({ top: 0 }),
 })
 

@@ -29,13 +29,20 @@ const instansiMenus = [
   { label: 'Notifikasi', to: { name: 'instansi-notifikasi' }, badge: true },
 ]
 
+// Admin: menu lengkapnya ada di sidebar (AppSidebar.vue), di navbar cukup pintasan.
+const adminMenus = [
+  { label: 'Panel Admin', to: { name: 'admin-dashboard' } },
+  { label: 'Notifikasi', to: { name: 'admin-notifikasi' }, badge: true },
+]
+
 const visibleMenus = computed(() => {
   if (role.value === ROLES.WARGA) return [...menus, ...wargaMenus]
   if (role.value === ROLES.INSTANSI) return [...menus, ...instansiMenus]
+  if (role.value === ROLES.ADMIN) return [...menus, ...adminMenus]
   return menus
 })
 
-// ---- Badge notifikasi (instansi) -------------------------------------------
+// ---- Badge notifikasi (instansi dan admin) ---------------------------------
 const notifikasi = useNotifikasiStore()
 const badgeText = computed(() => (notifikasi.unreadCount > 99 ? '99+' : String(notifikasi.unreadCount)))
 
@@ -48,12 +55,13 @@ const stopPolling = () => {
 }
 
 // Mulai (atau hentikan) polling setiap kali status login, role, atau akun berganti.
+// Navbar ini juga yang memberi angka untuk badge di sidebar admin.
 watch(
   () => [isLoggedIn.value, role.value, user.value?.id],
   () => {
     stopPolling()
     notifikasi.reset()
-    if (isLoggedIn.value && role.value === ROLES.INSTANSI) {
+    if (isLoggedIn.value && [ROLES.INSTANSI, ROLES.ADMIN].includes(role.value)) {
       notifikasi.fetchUnreadCount()
       pollTimer = setInterval(() => {
         if (!document.hidden) notifikasi.fetchUnreadCount() // tab di latar belakang: lewati
@@ -112,6 +120,20 @@ watch(() => route.fullPath, () => (isOpen.value = false))
 </template>
 
 <style scoped>
+.navbar__badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  margin-left: 0.375rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--color-danger, #b91c1c);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
 .navbar {
   position: sticky;
   top: 0;
