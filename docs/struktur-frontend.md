@@ -45,14 +45,19 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── instansi.api.js
     │   │   ├── notifikasi.api.js
     │   │   ├── admin.api.js
+    │   │   ├── support.api.js
     │   │   └── master.api.js
     │   │
     │   ├── assets/
     │   │   ├── images/
+    │   │   |   ├── gedung-banner.svg
+    │   │   |   ├── hero-photo.svg     ← warna, font, spacing
+    │   │   |   └── swirl.svg
     │   │   └── styles/
     │   │       ├── main.css          ← pindahan dari style.css
     │   │       ├── admin.css
     │   │       ├── variables.css     ← warna, font, spacing
+    │   │       ├── theme.css     ← warna, font, spacing
     │   │       └── reset.css
     │   │
     │   ├── components/               ← komponen yang dipakai berulang
@@ -70,6 +75,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── layout/               ← bagian-bagian layout
     │   │   │   ├── AppNavbar.vue
     │   │   │   ├── AppFooter.vue
+    │   │   │   ├── AppLogo.vue
     │   │   │   ├── AppSidebar.vue
     │   │   │   └── AppBreadcrumb.vue
     │   │   ├── admin/  
@@ -80,9 +86,19 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   └── VerifyForm.vue
     │   │   ├── notifikasi/    
     │   │   │   └── NotifikasiList.vue
+    │   │   ├── beranda/    
+    │   │   │   ├── BerandaFeedCard.vue
+    │   │   │   ├── CaraPakai.vue
+    │   │   │   ├── CtaBanner.vue
+    │   │   │   ├── FeedTerdekat.vue
+    │   │   │   ├── HeroSection.vue
+    │   │   │   ├── ProgressRing.vue
+    │   │   │   ├── StatsBar.vue
+    │   │   │   └── TransparansiCard.vue
     │   │   └── laporan/              ← komponen khusus domain laporan
     │   │       ├── LaporanCard.vue
     │   │       ├── LaporanForm.vue
+    │   │       ├── FeedCard.vue
     │   │       ├── LaporanFilter.vue
     │   │       ├── StatusBadge.vue
     │   │       ├── ProgressUpdateForm.vue
@@ -95,10 +111,13 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── useGeolocation.js
     │   │   ├── useFilteredList.js
     │   │   ├── useMasterOptions.js
+    │   │   ├── useSafeLink.js
     │   │   └── useToast.js
     │   │
     │   ├── constants/
     │   │   ├── roles.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
+    │   │   ├── berandaDummy.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
+    │   │   ├── brand.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
     │   │   └── status.js             ← status laporan
     │   │
     │   ├── layouts/                  ← "pembungkus" halaman
@@ -119,6 +138,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   ├── FeedPage.vue
     │   │   │   ├── KebijakanPrivasiPage.vue
     │   │   │   ├── SyaratKetentuanPage.vue
+    │   │   │   ├── StatistikPage.vue
     │   │   │   └── KontakPage.vue
     │   │   ├── warga/
     │   │   │   ├── BuatLaporanPage.vue
@@ -160,6 +180,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── formatDate.js
     │   │   ├── formatStatus.js
     │   │   ├── geo.js
+    │   │   ├── media.js
     │   │   └── validators.js
     │   │
     │   ├── App.vue                   ← tipis: hanya <router-view />

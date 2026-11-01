@@ -39,3 +39,15 @@ export const formatAge = (value) => {
   if (hours < 24) return `${hours} jam`
   return `${Math.floor(hours / 24)} hari`
 }
+export function timeAgo(iso) {
+  const ms = Date.now() - new Date(iso).getTime()
+  if (Number.isNaN(ms)) return ''
+  const m = Math.floor(ms / 60000)
+  if (m < 1) return 'baru saja'
+  if (m < 60) return `${m} menit lalu`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} jam lalu`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `${d} hari lalu`
+  return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}

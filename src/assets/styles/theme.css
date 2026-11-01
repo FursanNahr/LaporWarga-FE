@@ -1,0 +1,30 @@
+/*
+ * Entry CSS desain baru. Di main.js, GANTI import main.css dengan import file ini.
+ * main.css lama dimuat di layer "legacy" (prioritas terendah) supaya class utility
+ * Tailwind tidak dikalahkan oleh CSS lama (mis. `a { color: inherit }`).
+ */
+@import './main.css' layer(legacy);
+@import '@fontsource-variable/plus-jakarta-sans';
+@import 'tailwindcss';
+
+@theme {
+  --color-maroon: #44242d;
+  --color-maroon-dark: #2f1820;
+  --color-lime: #c1f52f;
+  --color-lime-dark: #a9dc16;
+  --color-cream: #fffbf7;
+  --color-sand: #f9f3ed;
+  --color-sand-dark: #eee3d8;
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background: var(--color-cream);
+    color: var(--color-maroon);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-maroon);
+    outline-offset: 2px;
+  }
+}
