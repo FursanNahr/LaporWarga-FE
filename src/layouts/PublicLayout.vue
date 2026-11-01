@@ -4,24 +4,12 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 </script>
 
 <template>
-  <div class="layout">
+  <div class="flex min-h-screen flex-col">
     <AppNavbar />
-
-    <!-- Halaman (pages/publik/*) akan dirender di sini oleh vue-router -->
-    <main class="layout__main">
+    <!-- Halaman (pages/publik/*) dirender di sini oleh vue-router -->
+    <main class="flex-1">
       <RouterView />
     </main>
-
     <AppFooter />
   </div>
 </template>
-
-<style scoped>
-.layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-/* flex: 1 supaya footer selalu menempel di bawah walau konten sedikit */
-.layout__main { flex: 1; }
-</style>
