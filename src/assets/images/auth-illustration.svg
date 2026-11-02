@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 400" fill="none" stroke="#44242d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="300" cy="400" rx="380" ry="70" fill="#f5ebdf" stroke="none"/>
+  <!-- bangunan -->
+  <rect x="190" y="250" width="260" height="140" fill="#fffbf7"/>
+  <rect x="150" y="320" width="110" height="70" fill="#44242d"/>
+  <path d="M180 250h300l-30-34H210z" fill="#44242d"/>
+  <rect x="250" y="190" width="150" height="60" fill="#fffbf7"/>
+  <path d="M236 190h178l-24-30H260z" fill="#44242d"/>
+  <path d="M270 160h110l-14-26h-82zM292 134h66l-10-22h-46z" fill="#fffbf7"/>
+  <path d="M325 112V70M318 70h14"/>
+  <g fill="#44242d" stroke="none"><rect x="268" y="200" width="16" height="26"/><rect x="298" y="200" width="16" height="26"/><rect x="328" y="200" width="16" height="26"/><rect x="358" y="200" width="16" height="26"/><rect x="215" y="272" width="22" height="30"/><rect x="255" y="272" width="22" height="30"/><rect x="295" y="272" width="22" height="30"/><rect x="335" y="272" width="22" height="30"/><rect x="375" y="272" width="22" height="30"/><rect x="415" y="272" width="22" height="30"/></g>
+  <g fill="#44242d" stroke="none"><path d="M212 390v-30a12 12 0 0 1 24 0v30zM252 390v-30a12 12 0 0 1 24 0v30zM292 390v-30a12 12 0 0 1 24 0v30zM332 390v-30a12 12 0 0 1 24 0v30zM372 390v-30a12 12 0 0 1 24 0v30z"/></g>
+  <!-- pohon -->
+  <circle cx="470" cy="330" r="48" fill="#c1f52f"/><circle cx="515" cy="350" r="36" fill="#c1f52f"/>
+  <path d="M470 390v-50M470 360l-14-14M470 352l14-12"/>
+  <circle cx="60" cy="350" r="34" fill="#c1f52f"/>
+  <!-- ponsel + tangan -->
+  <g transform="rotate(-14 110 300)">
+    <rect x="60" y="210" width="110" height="190" rx="16" fill="#fffbf7"/>
+    <circle cx="115" cy="285" r="24" fill="#44242d"/>
+    <path d="M115 273v14M115 296v1" stroke="#fffbf7" stroke-width="4"/>
+    <path d="M85 330h60M85 346h40" stroke="#eee3d8" stroke-width="8"/>
+  </g>
+  <path d="M0 400c20-40 50-60 90-70l20 40-10 30z" fill="#44242d"/>
+  <path d="M40 250l-8-14M62 238l-2-16" stroke="#c1f52f" stroke-width="5"/>
+</svg>

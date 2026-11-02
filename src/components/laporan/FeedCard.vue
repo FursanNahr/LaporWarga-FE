@@ -1,21 +1,32 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  BadgeCheck,
+  Bookmark,
+  CircleCheck,
+  CircleX,
+  Clock,
+  ImageIcon,
+  Info,
+  MapPin,
+  MessageCircle,
+  ThumbsUp,
+} from 'lucide-vue-next'
 import { assetUrl } from '@/api'
 import { supportApi } from '@/api/support.api'
 import { useAuth } from '@/composables/useAuth'
 import { ROLES } from '@/constants/roles'
-import { REPORT_STATUS } from '@/constants/status'
-import { formatDate } from '@/utils/formatDate'
+import { REPORT_STATUS, STATUS_META } from '@/constants/status'
+import { timeAgo } from '@/utils/formatDate'
 import { formatDistance, formatReporter } from '@/utils/formatStatus'
-import StatusBadge from '@/components/laporan/StatusBadge.vue'
 
 /**
- * FeedCard: satu laporan di feed (gaya Instagram). Dipakai di FeedPage.
- * `report` = satu item dari GET /reports.
+ * FeedCard: satu laporan di grid feed. `report` = satu item dari GET /reports.
  *
- * Tombol Dukung / Verifikasi diperbarui langsung di layar (optimistic), lalu disamakan dengan
- * jawaban server. Kalau gagal, angkanya dikembalikan dan muncul pesan singkat.
+ * Seluruh kartu bisa diklik (tautan di judul dibentangkan), sementara tombol Dukung / Verifikasi
+ * / Simpan tetap berdiri sendiri di atasnya. Dukung dan Verifikasi diperbarui langsung di layar
+ * (optimistic), lalu disamakan dengan jawaban server; kalau gagal, angkanya dikembalikan.
  */
 const props = defineProps({
   report: { type: Object, required: true },
@@ -25,46 +36,44 @@ const route = useRoute()
 const router = useRouter()
 const { isLoggedIn, role } = useAuth()
 
-// ---- Data tampilan ---------------------------------------------------------
+// ---- Tampilan ----------------------------------------------------------------
 
-const photos = computed(() =>
-  (props.report.photos ?? []).map((photo) => ({ id: photo.id, src: assetUrl(photo.url) })),
+// Ikon + warna lencana status. Label default dari STATUS_META; `label` di sini menimpanya.
+const STATUS_UI = {
+  [REPORT_STATUS.MENUNGGU_VERIFIKASI]: { icon: Clock, tone: 'bg-sky-100 text-sky-800' },
+  [REPORT_STATUS.TERVERIFIKASI]: { icon: CircleCheck, tone: 'bg-emerald-100 text-emerald-800' },
+  [REPORT_STATUS.DITOLAK]: { icon: CircleX, tone: 'bg-orange-100 text-red-700' },
+  [REPORT_STATUS.DITERUSKAN]: { icon: Info, tone: 'bg-blue-100 text-blue-800', label: 'Diteruskan ke Instansi' },
+  [REPORT_STATUS.DALAM_PENANGANAN]: { icon: Clock, tone: 'bg-amber-100 text-amber-800' },
+  [REPORT_STATUS.SELESAI]: { icon: CircleCheck, tone: 'bg-lime/60 text-emerald-900' },
+}
+const statusUi = computed(() => STATUS_UI[props.report.status] ?? { icon: Info, tone: 'bg-sand text-maroon' })
+const statusLabel = computed(
+  () => statusUi.value.label ?? STATUS_META[props.report.status]?.label ?? props.report.status,
 )
+
+const cover = computed(() => assetUrl(props.report.photos?.[0]?.url))
+const photoCount = computed(() => props.report.photos?.length ?? 0)
+const place = computed(() => props.report.district?.name || props.report.address || 'Lokasi tidak tersedia')
+
+// Laporan belum punya judul; dirangkai dari subjenis + alamat ("Jalan berlubang di Jl. Terusan Jakarta").
+const title = computed(() => {
+  if (props.report.title) return props.report.title
+  const type = props.report.subcategory?.name ?? 'Laporan'
+  return props.report.address ? `${type} di ${props.report.address}` : type
+})
 
 const reporterName = computed(() => formatReporter(props.report))
 const avatar = computed(() => assetUrl(props.report.reporter?.avatarUrl))
 const initial = computed(() => reporterName.value?.trim()?.[0]?.toUpperCase() ?? '?')
-
-const category = computed(() => {
-  const sub = props.report.subcategory
-  if (!sub) return ''
-  return sub.category?.name ? `${sub.category.name} › ${sub.name}` : sub.name
-})
-
-const location = computed(() =>
-  [props.report.address, props.report.district?.name].filter(Boolean).join(', '),
-)
-
 const hasDistance = computed(
   () => props.report.distanceMeters !== null && props.report.distanceMeters !== undefined,
 )
-
 const showRejection = computed(
   () => props.report.status === REPORT_STATUS.DITOLAK && props.report.rejectionReason,
 )
 
-// Deskripsi panjang dipotong 3 baris, bisa dibuka.
-const expanded = ref(false)
-const isLong = computed(() => (props.report.description?.length ?? 0) > 140)
-
-// Penanda foto yang sedang terlihat saat digeser.
-const activeSlide = ref(0)
-function onSlide(event) {
-  const el = event.target
-  if (el.clientWidth > 0) activeSlide.value = Math.round(el.scrollLeft / el.clientWidth)
-}
-
-// ---- Dukung & verifikasi ---------------------------------------------------
+// ---- Dukung & verifikasi -------------------------------------------------------
 
 const counts = reactive({ upvote: 0, verify: 0 })
 const mine = reactive({ upvote: false, verify: false })
@@ -79,8 +88,7 @@ function syncFromProps() {
 syncFromProps()
 watch(() => props.report, syncFromProps)
 
-// Alasan tombol tidak bisa dipakai. Tamu sengaja tidak dihitung: tombolnya aktif dan
-// menekannya mengarahkan ke halaman Masuk.
+// Alasan tombol tidak bisa dipakai. Tamu tidak dihitung: tombolnya aktif dan mengarah ke Masuk.
 const blockedReason = computed(() => {
   if (!isLoggedIn.value) return ''
   if (role.value !== ROLES.WARGA) return 'Hanya akun warga yang dapat memberi dukungan'
@@ -120,12 +128,11 @@ async function toggle(kind) {
       ? await supportApi.add(props.report.id, kind)
       : await supportApi.remove(props.report.id, kind)
 
-    // ...lalu samakan dengan angka dari server (bisa berbeda kalau warga lain ikut mendukung).
+    // ...lalu samakan dengan angka dari server.
     const state = body.data
     counts[kind] = kind === 'upvote' ? state.stats.upvotes : state.stats.verifications
     mine[kind] = kind === 'upvote' ? state.viewer.hasUpvoted : state.viewer.hasVerified
   } catch (e) {
-    // Gagal: kembalikan seperti semula.
     mine[kind] = !next
     counts[kind] = Math.max(0, counts[kind] - delta)
     showNotice(e.normalized?.message ?? 'Gagal menyimpan dukungan')
@@ -133,289 +140,125 @@ async function toggle(kind) {
     busy[kind] = false
   }
 }
+
+// ---- Simpan (bookmark) ---------------------------------------------------------
+// DUMMY: baru tersimpan di kartu ini. Sambungkan ke BE kalau endpoint simpan laporan sudah ada.
+const saved = ref(false)
+function toggleSave() {
+  if (!isLoggedIn.value) return goToLogin()
+  saved.value = !saved.value
+}
+
+const statButton =
+  'relative z-10 -m-1 inline-flex cursor-pointer items-center gap-1.5 rounded-md p-1 transition-colors ' +
+  'hover:text-maroon-dark aria-disabled:cursor-not-allowed aria-disabled:opacity-50'
 </script>
 
 <template>
-  <article class="feed-card">
-    <header class="feed-card__head">
-      <span class="feed-card__avatar" aria-hidden="true">
-        <img v-if="avatar" :src="avatar" alt="" loading="lazy" />
-        <template v-else>{{ initial }}</template>
+  <article
+    class="relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_4px_16px_-6px_rgba(68,36,45,.25)] transition-shadow hover:shadow-lg has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-maroon"
+  >
+    <div class="relative aspect-[16/10] bg-sand">
+      <img
+        v-if="cover"
+        :src="cover"
+        :alt="`Foto laporan ${report.trackingCode ?? ''}`"
+        loading="lazy"
+        class="size-full object-cover"
+      />
+      <ImageIcon
+        v-else
+        class="absolute left-1/2 top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 text-maroon/30"
+        aria-hidden="true"
+      />
+
+      <span class="absolute left-2.5 top-2.5 inline-flex max-w-[70%] items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold">
+        <MapPin class="size-3 shrink-0" aria-hidden="true" /><span class="truncate">{{ place }}</span>
+      </span>
+      <span
+        v-if="photoCount > 0"
+        class="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-maroon/75 px-2.5 py-1 text-[11px] font-semibold text-white"
+      >
+        <ImageIcon class="size-3" aria-hidden="true" /> {{ photoCount }}
+        <span class="sr-only">foto</span>
+      </span>
+    </div>
+
+    <div class="flex flex-1 flex-col p-4">
+      <span
+        class="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold"
+        :class="statusUi.tone"
+      >
+        <component :is="statusUi.icon" class="size-3.5" aria-hidden="true" /> {{ statusLabel }}
       </span>
 
-      <div class="feed-card__who">
-        <strong class="feed-card__name">{{ reporterName }}</strong>
-        <span class="feed-card__time">
-          {{ formatDate(report.createdAt) }}
-          <template v-if="hasDistance"> · {{ formatDistance(report.distanceMeters) }} dari lokasimu</template>
-        </span>
-      </div>
-
-      <StatusBadge :status="report.status" />
-    </header>
-
-    <div class="feed-card__media">
-      <div v-if="photos.length" class="feed-card__slides" @scroll.passive="onSlide">
-        <img
-          v-for="photo in photos"
-          :key="photo.id"
-          class="feed-card__slide"
-          :src="photo.src"
-          :alt="`Foto laporan ${report.trackingCode}`"
-          loading="lazy"
-        />
-      </div>
-      <div v-else class="feed-card__placeholder">Tanpa foto</div>
-      <span v-if="photos.length > 1" class="feed-card__count">{{ activeSlide + 1 }}/{{ photos.length }}</span>
-    </div>
-
-    <div class="feed-card__actions">
-      <button
-        type="button"
-        class="feed-card__action"
-        :class="{ 'is-on': mine.upvote }"
-        :aria-pressed="mine.upvote"
-        :aria-disabled="Boolean(blockedReason)"
-        :title="blockedReason || 'Dukung agar laporan ini diprioritaskan'"
-        @click="toggle('upvote')"
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="12" y1="19" x2="12" y2="5" />
-          <polyline points="5 12 12 5 19 12" />
-        </svg>
-        {{ mine.upvote ? 'Didukung' : 'Dukung' }} · {{ counts.upvote }}
-      </button>
-
-      <button
-        type="button"
-        class="feed-card__action"
-        :class="{ 'is-on': mine.verify }"
-        :aria-pressed="mine.verify"
-        :aria-disabled="Boolean(blockedReason)"
-        :title="blockedReason || 'Konfirmasi bahwa masalah ini benar ada'"
-        @click="toggle('verify')"
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-        {{ mine.verify ? 'Terverifikasi' : 'Verifikasi' }} · {{ counts.verify }}
-      </button>
-
-      <RouterLink
-        :to="{ name: 'detail-laporan', params: { id: report.id } }"
-        class="feed-card__action"
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-        </svg>
-        Komentar · {{ report.stats?.comments ?? 0 }}
-      </RouterLink>
-    </div>
-
-    <p v-if="notice" class="feed-card__notice" role="status">{{ notice }}</p>
-
-    <div class="feed-card__body">
-      <p v-if="category" class="feed-card__category">{{ category }}</p>
-
-      <p class="feed-card__description" :class="{ 'is-clamped': isLong && !expanded }">
-        {{ report.description }}
-      </p>
-      <button v-if="isLong" type="button" class="feed-card__more" @click="expanded = !expanded">
-        {{ expanded ? 'Sembunyikan' : 'Selengkapnya' }}
-      </button>
-
-      <p v-if="showRejection" class="feed-card__rejection">Alasan penolakan: {{ report.rejectionReason }}</p>
-
-      <p v-if="location" class="feed-card__meta">{{ location }}</p>
-      <p v-if="report.agency" class="feed-card__meta">Ditangani: {{ report.agency.name }}</p>
-
-      <p class="feed-card__meta">
+      <h3 class="mt-2.5 line-clamp-2 min-h-[2.9rem] text-[17px] font-extrabold leading-snug">
         <RouterLink
           :to="{ name: 'detail-laporan', params: { id: report.id } }"
-          class="feed-card__link"
-        >
-          {{ report.trackingCode }} · Lihat detail dan progres
-        </RouterLink>
+          class="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+        >{{ title }}</RouterLink>
+      </h3>
+
+      <p v-if="showRejection" class="mt-1 text-xs font-semibold text-red-700">
+        Alasan penolakan: {{ report.rejectionReason }}
       </p>
+
+      <div class="relative z-10 my-3 flex items-center gap-4 text-sm font-semibold">
+        <button
+          type="button"
+          :class="[statButton, mine.upvote && '[&>svg]:fill-lime']"
+          :aria-pressed="mine.upvote"
+          :aria-disabled="Boolean(blockedReason)"
+          :aria-label="`${mine.upvote ? 'Batalkan dukungan' : 'Dukung laporan'}, ${counts.upvote} dukungan`"
+          :title="blockedReason || 'Dukung agar laporan ini diprioritaskan'"
+          @click="toggle('upvote')"
+        >
+          <ThumbsUp class="size-[18px]" aria-hidden="true" /> {{ counts.upvote }}
+        </button>
+
+        <RouterLink
+          :to="{ name: 'detail-laporan', params: { id: report.id }, hash: '#komentar' }"
+          :class="statButton"
+          :aria-label="`${report.stats?.comments ?? 0} komentar`"
+        >
+          <MessageCircle class="size-[18px]" aria-hidden="true" /> {{ report.stats?.comments ?? 0 }}
+        </RouterLink>
+
+        <button
+          type="button"
+          :class="[statButton, mine.verify && '[&>svg]:fill-lime']"
+          :aria-pressed="mine.verify"
+          :aria-disabled="Boolean(blockedReason)"
+          :aria-label="`${mine.verify ? 'Batalkan verifikasi' : 'Verifikasi laporan'}, ${counts.verify} verifikasi`"
+          :title="blockedReason || 'Konfirmasi bahwa masalah ini benar ada'"
+          @click="toggle('verify')"
+        >
+          <BadgeCheck class="size-[18px]" aria-hidden="true" /> {{ counts.verify }}
+        </button>
+
+        <button
+          type="button"
+          :class="[statButton, 'ml-auto']"
+          :aria-pressed="saved"
+          :aria-label="saved ? 'Hapus dari simpanan' : 'Simpan laporan'"
+          @click="toggleSave"
+        >
+          <Bookmark class="size-[18px]" :class="{ 'fill-maroon': saved }" aria-hidden="true" />
+        </button>
+      </div>
+
+      <p v-if="notice" class="mb-2 text-xs font-semibold text-red-700" role="status">{{ notice }}</p>
+
+      <div class="mt-auto flex items-center gap-2.5 border-t border-sand pt-3">
+        <img v-if="avatar" :src="avatar" alt="" loading="lazy" class="size-8 rounded-full object-cover" />
+        <span v-else class="flex size-8 items-center justify-center rounded-full bg-maroon text-xs font-bold text-lime" aria-hidden="true">{{ initial }}</span>
+        <div class="min-w-0 leading-tight">
+          <p class="truncate text-xs font-bold">{{ reporterName }}</p>
+          <p class="text-[11px] text-maroon/70">
+            {{ timeAgo(report.createdAt) }}<template v-if="hasDistance"> · {{ formatDistance(report.distanceMeters) }}</template>
+          </p>
+        </div>
+      </div>
     </div>
   </article>
 </template>
-
-<style scoped>
-/* Warna memakai variabel dengan nilai cadangan; sesuaikan namanya dengan variables.css-mu. */
-.feed-card {
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.feed-card__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-}
-.feed-card__avatar {
-  width: 36px;
-  height: 36px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  overflow: hidden;
-  font-weight: 600;
-  background: var(--color-primary-soft, #e0e7ff);
-  color: var(--color-primary, #2563eb);
-}
-.feed-card__avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.feed-card__who {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.feed-card__name {
-  font-size: 0.9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.feed-card__time {
-  font-size: 0.78rem;
-  color: var(--color-text-muted, #6b7280);
-}
-
-.feed-card__media {
-  position: relative;
-  background: var(--color-bg-muted, #f3f4f6);
-}
-.feed-card__slides {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-.feed-card__slides::-webkit-scrollbar {
-  display: none;
-}
-.feed-card__slide {
-  flex: 0 0 100%;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  display: block;
-  scroll-snap-align: center;
-}
-.feed-card__placeholder {
-  aspect-ratio: 4 / 3;
-  display: grid;
-  place-items: center;
-  color: var(--color-text-muted, #6b7280);
-}
-.feed-card__count {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  color: #fff;
-  background: rgb(0 0 0 / 55%);
-}
-
-.feed-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 12px 4px;
-}
-.feed-card__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 0.85rem;
-  line-height: 1;
-  text-decoration: none;
-  cursor: pointer;
-}
-.feed-card__action:hover {
-  background: var(--color-bg-muted, #f3f4f6);
-}
-.feed-card__action.is-on {
-  border-color: var(--color-primary, #2563eb);
-  background: var(--color-primary-soft, #e0e7ff);
-  color: var(--color-primary, #2563eb);
-}
-.feed-card__action[aria-disabled='true'] {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.feed-card__notice {
-  margin: 4px 14px 0;
-  font-size: 0.82rem;
-  color: var(--color-danger, #b91c1c);
-}
-
-.feed-card__body {
-  padding: 8px 14px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.feed-card__body p {
-  margin: 0;
-}
-.feed-card__category {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--color-primary, #2563eb);
-}
-.feed-card__description {
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-}
-.feed-card__description.is-clamped {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.feed-card__more {
-  align-self: flex-start;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 0.85rem;
-  color: var(--color-text-muted, #6b7280);
-  cursor: pointer;
-}
-.feed-card__rejection {
-  font-size: 0.85rem;
-  color: var(--color-danger, #b91c1c);
-}
-.feed-card__meta {
-  font-size: 0.82rem;
-  color: var(--color-text-muted, #6b7280);
-}
-.feed-card__link {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-</style>

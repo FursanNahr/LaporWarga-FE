@@ -1,53 +1,122 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { Map as MapIcon, Plus } from 'lucide-vue-next'
+import api from '@/api'
 import { laporanApi } from '@/api/laporan.api'
 import { useAuth } from '@/composables/useAuth'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { usePagination } from '@/composables/usePagination'
-import { ROLES } from '@/constants/roles'
 import FeedCard from '@/components/laporan/FeedCard.vue'
+import FeedFilterBar from '@/components/laporan/FeedFilterBar.vue'
+import FeedSidePanel from '@/components/laporan/FeedSidePanel.vue'
 
 /**
- * FeedPage: feed laporan di sekitar pengguna (gaya Instagram), dengan infinite scroll.
+ * FeedPage: feed laporan (grid kartu) dengan filter dan infinite scroll.
  *
- * Halaman ini dipakai di DUA rute: `feed` (publik, PublicLayout, boleh tanpa login) dan
- * `warga-feed` (DashboardLayout dengan sidebar). Isinya sama; yang beda hanya pembungkusnya.
+ * Dipakai di DUA rute: `feed` (PublicLayout, boleh tanpa login) dan `warga-feed` (DashboardLayout).
+ * Isinya sama; yang beda hanya pembungkusnya (navbar untuk tamu, sidebar untuk yang sudah masuk).
  *
- * Alur lokasi: minta lokasi perangkat. Berhasil -> laporan dalam radius sekitar (radius standar
- * dari BE). Ditolak/gagal -> laporan terbaru secara umum, dengan tombol untuk mencoba lagi.
+ * Alur lokasi: minta lokasi perangkat. Berhasil -> "Dekat Saya" (laporan dalam radius sekitar).
+ * Ditolak/gagal/terlalu lama -> "Semua Lokasi" (laporan terbaru), dengan tombol untuk mencoba lagi.
  */
 
 // Kalau izin lokasi tidak dijawab, jangan biarkan layar kosong: tampilkan laporan terbaru dulu.
 const LOCATION_WAIT_MS = 4000
 
-const route = useRoute()
 const router = useRouter()
-const { isLoggedIn, role } = useAuth()
+const { isLoggedIn } = useAuth()
 const { coords, loading: locating, error: geoError, locate } = useGeolocation()
-const { items, loading, loadingMore, error, hasMore, load, loadMore } = usePagination(
-  laporanApi.list,
-  { limit: 10 },
+const { items, loading, loadingMore, error, hasMore, load, loadMore } = usePagination(laporanApi.list, { limit: 12 })
+
+// ---- Filter ------------------------------------------------------------------
+
+const location = ref('all') // 'all' | 'nearby' | `district:<id>`
+const baseLocation = ref('all') // nilai awal setelah lokasi dicoba; dipakai "Atur ulang"
+const filters = reactive({ agencyId: '', status: '', sort: 'latest' })
+
+const dirty = computed(
+  () => location.value !== baseLocation.value || Boolean(filters.agencyId) || Boolean(filters.status) || filters.sort !== 'latest',
 )
 
-const nearby = computed(() => coords.value !== null)
-const feedParams = () =>
-  coords.value ? { lat: coords.value.latitude, lng: coords.value.longitude } : {}
+// Parameter GET /reports. `sort` tidak dikirim: BE belum punya parameter itu (lihat displayItems).
+const params = computed(() => {
+  const result = {}
+  if (location.value === 'nearby' && coords.value) {
+    result.lat = coords.value.latitude
+    result.lng = coords.value.longitude
+  } else if (location.value.startsWith('district:')) {
+    result.districtId = location.value.slice('district:'.length)
+  }
+  if (filters.agencyId) result.agencyId = filters.agencyId
+  if (filters.status) result.status = filters.status
+  return result
+})
+const paramsKey = computed(() => JSON.stringify(params.value))
+
+// "Terpopuler" baru mengurutkan laporan yang SUDAH termuat. Urutan sebenarnya butuh `sort` di BE.
+const displayItems = computed(() =>
+  filters.sort === 'popular'
+    ? [...items.value].sort((a, b) => (b.stats?.upvotes ?? 0) - (a.stats?.upvotes ?? 0))
+    : items.value,
+)
+
+// Muat ulang kalau filter berubah, tapi hanya setelah muat pertama dimulai (lihat onMounted).
+const ready = ref(false)
+watch(paramsKey, () => {
+  if (ready.value) load(params.value)
+})
+
+async function setLocation(value) {
+  if (value === 'nearby' && !coords.value) {
+    const position = await locate()
+    if (!position) return // pesan kesalahan tampil lewat modeText
+  }
+  location.value = value
+}
+
+function resetFilters() {
+  location.value = baseLocation.value
+  filters.agencyId = ''
+  filters.status = ''
+  filters.sort = 'latest'
+}
 
 const modeText = computed(() => {
   if (locating.value) return 'Mencari lokasimu…'
-  if (nearby.value) return 'Menampilkan laporan di sekitar lokasimu.'
-  if (geoError.value) return `${geoError.value} Menampilkan laporan terbaru.`
-  return 'Menampilkan laporan terbaru.'
+  if (location.value === 'nearby') return 'Menampilkan laporan di sekitar lokasimu.'
+  if (geoError.value && location.value === 'all') return `${geoError.value} Menampilkan laporan terbaru.`
+  return ''
 })
 
-// Tombol "Buat laporan": tamu diarahkan masuk dulu, lalu kembali ke formulir.
-const canCreate = computed(() => !isLoggedIn.value || role.value === ROLES.WARGA)
-const createLink = computed(() =>
-  isLoggedIn.value
-    ? { name: 'warga-buat-laporan' }
-    : { name: 'masuk', query: { redirect: router.resolve({ name: 'warga-buat-laporan' }).fullPath } },
-)
+// ---- Pilihan instansi & kecamatan -------------------------------------------------
+// Dibaca langsung dari endpoint publik BE. Kalau useMasterOptions sudah menyediakannya, ganti fungsi ini.
+// Gagal dimuat tidak masalah: filternya hanya menampilkan pilihan "Semua".
+
+const agencies = ref([])
+const districts = ref([])
+
+const toOptions = (body) => {
+  const data = body?.data
+  const list = Array.isArray(data) ? data : (data?.items ?? [])
+  return list.map(({ id, name }) => ({ id, name }))
+}
+
+async function loadOptions() {
+  const [agencyResult, districtResult] = await Promise.allSettled([api.get('/agencies'), api.get('/districts')])
+  if (agencyResult.status === 'fulfilled') agencies.value = toOptions(agencyResult.value.data)
+  if (districtResult.status === 'fulfilled') districts.value = toOptions(districtResult.value.data)
+}
+
+// ---- Tombol "Buat laporan" (untuk tamu; warga sudah punya di sidebar) ---------------
+
+const createLink = computed(() => ({
+  name: 'masuk',
+  query: { redirect: router.resolve({ name: 'warga-buat-laporan' }).fullPath },
+}))
+const hasMapRoute = router.hasRoute('peta')
+
+// ---- Status tampilan -----------------------------------------------------------------
 
 // Supaya "kosong" tidak sempat berkedip sebelum muat pertama selesai.
 const loaded = ref(false)
@@ -55,23 +124,13 @@ watch(loading, (isLoading, wasLoading) => {
   if (wasLoading && !isLoading) loaded.value = true
 })
 
-const showSkeleton = computed(() => items.value.length === 0 && (loading.value || locating.value) && !error.value)
+const showSkeleton = computed(() => items.value.length === 0 && (!ready.value || loading.value) && !error.value)
+const showFullError = computed(() => items.value.length === 0 && Boolean(error.value) && !loading.value)
+const showMoreError = computed(() => items.value.length > 0 && Boolean(error.value))
 const showEmpty = computed(() => loaded.value && !loading.value && !error.value && items.value.length === 0)
 const showEnd = computed(() => items.value.length > 0 && !hasMore.value && !loading.value && !error.value)
 
-// ---- Lokasi ------------------------------------------------------------------
-
-async function findLocation() {
-  const position = await locate()
-  if (position) load(feedParams())
-}
-
-function showLatest() {
-  coords.value = null
-  load({})
-}
-
-// ---- Infinite scroll -----------------------------------------------------------
+// ---- Infinite scroll -------------------------------------------------------------------
 
 const sentinel = ref(null)
 let observer = null
@@ -91,13 +150,19 @@ function maybeLoadMore() {
 // Halaman pertama bisa lebih pendek dari layar: setelah tiap muat, cek lagi apakah masih perlu.
 watch([loading, loadingMore, () => items.value.length], () => nextTick(maybeLoadMore))
 
-// ---- Siklus hidup --------------------------------------------------------------
+// ---- Siklus hidup -----------------------------------------------------------------------
 
 let fallbackTimer = null
-let fallbackFired = false
 let unmounted = false
 
+function startLoading() {
+  ready.value = true
+  load(params.value)
+}
+
 onMounted(async () => {
+  loadOptions()
+
   if ('IntersectionObserver' in window && sentinel.value) {
     observer = new IntersectionObserver(
       (entries) => {
@@ -108,17 +173,19 @@ onMounted(async () => {
     observer.observe(sentinel.value)
   }
 
-  fallbackTimer = setTimeout(() => {
-    fallbackFired = true
-    load({})
-  }, LOCATION_WAIT_MS)
+  fallbackTimer = setTimeout(startLoading, LOCATION_WAIT_MS)
 
   const position = await locate()
   clearTimeout(fallbackTimer)
   if (unmounted) return
 
-  // Lokasi didapat -> muat versi sekitar. Gagal -> muat terbaru, kecuali sudah termuat oleh timer di atas.
-  if (position || !fallbackFired) load(feedParams())
+  if (position) {
+    baseLocation.value = 'nearby'
+    // Kalau pengguna sudah memilih lokasi lain selama menunggu, jangan ditimpa.
+    if (location.value === 'all') location.value = 'nearby'
+  }
+  // Belum dimuat oleh timer di atas -> muat sekarang. Sudah dimuat -> watch(paramsKey) yang menyusul.
+  if (!ready.value) startLoading()
 })
 
 onBeforeUnmount(() => {
@@ -129,194 +196,124 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="feed" aria-labelledby="feed-title">
-    <header class="feed__header">
-      <div>
-        <h1 id="feed-title" class="feed__title">Feed laporan</h1>
-        <p class="feed__subtitle">
-          Masalah fasilitas publik yang dilaporkan warga. Dukung dan verifikasi supaya cepat ditangani.
+  <div class="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <div class="xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
+      <section class="min-w-0" aria-labelledby="feed-title">
+        <header class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 id="feed-title" class="text-4xl font-extrabold tracking-tight sm:text-[2.75rem] sm:leading-tight">
+              Feed Laporan
+            </h1>
+            <p class="relative mt-1 inline-block pb-2 text-[15px]">
+              Jelajahi laporan terbaru di sekitar kamu, dan dukung laporan yang menurutmu penting!
+              <svg class="absolute -bottom-0.5 left-0 h-2 w-52 text-lime" viewBox="0 0 208 8" fill="none" aria-hidden="true">
+                <path d="M2 5Q15 0 28 5T54 5T80 5T106 5T132 5T158 5T184 5T206 5" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              </svg>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <RouterLink
+              v-if="hasMapRoute"
+              :to="{ name: 'peta' }"
+              class="inline-flex h-11 items-center gap-2 rounded-full border border-maroon px-5 text-sm font-bold hover:bg-sand"
+            >
+              <MapIcon class="size-4" aria-hidden="true" /> Lihat Peta
+            </RouterLink>
+            <RouterLink
+              v-if="!isLoggedIn"
+              :to="createLink"
+              class="inline-flex h-11 items-center gap-2 rounded-full bg-maroon px-5 text-sm font-bold text-white transition-colors hover:bg-maroon-dark"
+            >
+              <Plus class="size-4" aria-hidden="true" /> Buat Laporan
+            </RouterLink>
+          </div>
+        </header>
+
+        <FeedFilterBar
+          class="mt-6"
+          :location="location"
+          v-model:agency-id="filters.agencyId"
+          v-model:status="filters.status"
+          v-model:sort="filters.sort"
+          :agencies="agencies"
+          :districts="districts"
+          :locating="locating"
+          :dirty="dirty"
+          @update:location="setLocation"
+          @reset="resetFilters"
+        />
+
+        <p v-if="modeText" class="mt-3 text-sm text-maroon/80" role="status">
+          {{ modeText }}
+          <button
+            v-if="geoError && location === 'all' && !locating"
+            type="button"
+            class="cursor-pointer font-bold underline underline-offset-2"
+            @click="setLocation('nearby')"
+          >Coba lagi</button>
         </p>
-      </div>
-      <RouterLink v-if="canCreate" :to="createLink" class="btn btn-primary">Buat laporan</RouterLink>
-    </header>
 
-    <p v-if="!isLoggedIn" class="feed__hint">
-      <RouterLink :to="{ name: 'masuk', query: { redirect: route.fullPath } }">Masuk</RouterLink>
-      untuk mendukung, memverifikasi, dan berkomentar.
-    </p>
+        <div id="feed-list" class="mt-5 scroll-mt-28" :aria-busy="loading">
+          <div
+            v-if="showSkeleton"
+            class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5"
+            aria-hidden="true"
+          >
+            <div v-for="n in 6" :key="n" class="animate-pulse overflow-hidden rounded-2xl bg-white shadow-[0_4px_16px_-6px_rgba(68,36,45,.2)]">
+              <div class="aspect-[16/10] bg-sand"></div>
+              <div class="space-y-3 p-4">
+                <div class="h-5 w-28 rounded-full bg-sand"></div>
+                <div class="h-4 w-full rounded bg-sand"></div>
+                <div class="h-4 w-2/3 rounded bg-sand"></div>
+                <div class="h-8 w-1/2 rounded bg-sand"></div>
+              </div>
+            </div>
+          </div>
 
-    <div class="feed__mode" role="status">
-      <span>{{ modeText }}</span>
-      <button v-if="!locating && nearby" type="button" class="feed__link" @click="showLatest">
-        Lihat laporan terbaru
-      </button>
-      <button v-else-if="!locating" type="button" class="feed__link" @click="findLocation">
-        {{ geoError ? 'Coba lagi' : 'Gunakan lokasiku' }}
-      </button>
+          <div v-else-if="showFullError" class="rounded-2xl bg-white px-6 py-12 text-center" role="alert">
+            <p class="text-lg font-extrabold">Laporan belum bisa dimuat</p>
+            <p class="mt-1 text-sm text-maroon/80">Periksa koneksi internetmu, lalu coba lagi.</p>
+            <button
+              type="button"
+              class="mt-4 h-11 cursor-pointer rounded-full bg-maroon px-6 text-sm font-bold text-white hover:bg-maroon-dark"
+              @click="load(params)"
+            >Coba lagi</button>
+          </div>
+
+          <div v-else-if="showEmpty" class="rounded-2xl bg-white px-6 py-12 text-center">
+            <p class="text-lg font-extrabold">
+              {{ dirty ? 'Tidak ada laporan yang cocok' : 'Belum ada laporan di sini' }}
+            </p>
+            <p class="mt-1 text-sm text-maroon/80">
+              {{ dirty ? 'Coba ubah atau hapus filter.' : 'Jadilah yang pertama melaporkan masalah di sekitarmu.' }}
+            </p>
+            <button
+              v-if="dirty"
+              type="button"
+              class="mt-4 h-11 cursor-pointer rounded-full border border-maroon px-6 text-sm font-bold hover:bg-sand"
+              @click="resetFilters"
+            >Atur ulang filter</button>
+          </div>
+
+          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
+            <FeedCard v-for="report in displayItems" :key="report.id" :report="report" />
+          </div>
+        </div>
+
+        <div ref="sentinel" class="h-px" aria-hidden="true"></div>
+
+        <p v-if="loadingMore" class="py-6 text-center text-sm font-semibold text-maroon/70" role="status">
+          Memuat laporan lainnya…
+        </p>
+        <p v-if="showMoreError" class="py-6 text-center text-sm" role="alert">
+          Laporan lanjutan gagal dimuat.
+          <button type="button" class="cursor-pointer font-bold underline underline-offset-2" @click="loadMore()">Coba lagi</button>
+        </p>
+        <p v-if="showEnd" class="py-6 text-center text-sm text-maroon/70">Kamu sudah melihat semua laporan.</p>
+      </section>
+
+      <FeedSidePanel />
     </div>
-
-    <!-- Muat pertama -->
-    <div v-if="showSkeleton" class="feed__list" aria-busy="true" aria-label="Memuat laporan">
-      <div v-for="n in 3" :key="n" class="feed__skeleton">
-        <div class="feed__skeleton-line feed__skeleton-line--short"></div>
-        <div class="feed__skeleton-media"></div>
-        <div class="feed__skeleton-line"></div>
-        <div class="feed__skeleton-line feed__skeleton-line--short"></div>
-      </div>
-    </div>
-
-    <!-- Gagal muat pertama -->
-    <div v-else-if="error && items.length === 0" class="feed__state" role="alert">
-      <p>{{ error }}</p>
-      <button type="button" class="btn" @click="load()">Coba lagi</button>
-    </div>
-
-    <!-- Tidak ada laporan -->
-    <div v-else-if="showEmpty" class="feed__state">
-      <p v-if="nearby">Belum ada laporan di sekitarmu.</p>
-      <p v-else>Belum ada laporan.</p>
-      <button v-if="nearby" type="button" class="btn" @click="showLatest">Lihat laporan terbaru</button>
-    </div>
-
-    <!-- Daftar -->
-    <div v-else class="feed__list" :class="{ 'is-refreshing': loading }">
-      <FeedCard v-for="report in items" :key="report.id" :report="report" />
-    </div>
-
-    <!-- Penanda ujung daftar untuk infinite scroll (selalu ada di DOM) -->
-    <div ref="sentinel" class="feed__sentinel" aria-hidden="true"></div>
-
-    <p v-if="loadingMore" class="feed__footer" role="status">Memuat laporan lainnya…</p>
-    <div v-else-if="error && items.length > 0" class="feed__footer" role="alert">
-      <p>{{ error }}</p>
-      <button type="button" class="btn" @click="loadMore">Coba lagi</button>
-    </div>
-    <p v-else-if="showEnd" class="feed__footer">Kamu sudah melihat semua laporan.</p>
-  </section>
+  </div>
 </template>
-
-<style scoped>
-/* Warna memakai variabel dengan nilai cadangan; sesuaikan namanya dengan variables.css-mu. */
-.feed {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.feed__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.feed__title {
-  margin: 0;
-  font-size: 1.35rem;
-}
-.feed__subtitle {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: var(--color-text-muted, #6b7280);
-}
-
-.feed__hint {
-  margin: 0;
-  font-size: 0.88rem;
-  color: var(--color-text-muted, #6b7280);
-}
-
-.feed__mode {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  background: var(--color-bg-muted, #f3f4f6);
-}
-.feed__link {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: 600;
-  color: var(--color-primary, #2563eb);
-  cursor: pointer;
-}
-
-.feed__list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  transition: opacity 0.15s;
-}
-.feed__list.is-refreshing {
-  opacity: 0.5;
-}
-
-.feed__state,
-.feed__footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 24px 0;
-  text-align: center;
-  color: var(--color-text-muted, #6b7280);
-}
-.feed__state p,
-.feed__footer p {
-  margin: 0;
-}
-.feed__footer {
-  padding: 8px 0 24px;
-  font-size: 0.85rem;
-}
-
-.feed__sentinel {
-  height: 1px;
-}
-
-/* Kerangka saat memuat */
-.feed__skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 12px;
-}
-.feed__skeleton-line,
-.feed__skeleton-media {
-  border-radius: 6px;
-  background: linear-gradient(90deg, #eceff1 25%, #f6f7f8 37%, #eceff1 63%);
-  background-size: 400% 100%;
-  animation: feed-shimmer 1.4s ease infinite;
-}
-.feed__skeleton-line {
-  height: 12px;
-}
-.feed__skeleton-line--short {
-  width: 45%;
-}
-.feed__skeleton-media {
-  aspect-ratio: 4 / 3;
-}
-@keyframes feed-shimmer {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .feed__skeleton-line,
-  .feed__skeleton-media {
-    animation: none;
-  }
-}
-</style>

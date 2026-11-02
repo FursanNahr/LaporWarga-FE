@@ -1,10 +1,12 @@
-// Semua rute publik dibungkus PublicLayout (navbar + footer).
-// Halaman di `children` dirender di <RouterView /> milik layout.
+// Rute publik dibagi dua pembungkus:
+//  1) PublicLayout (navbar + footer): halaman biasa.
+//  2) AuthLayout (layar penuh, tanpa navbar/footer): Masuk & Daftar.
 //
 // Aturan: SELALU beri `name` pada route, lalu pakai :to="{ name: '...' }"
 // di RouterLink. Jadi kalau path berubah, link tidak perlu diedit.
 //
 // meta.guestOnly: hanya untuk yang belum login (dicek di router/index.js).
+// meta.authVariant: pilih teks + ilustrasi di AuthLayout ('masuk' | 'daftar').
 export default [
   {
     path: '/',
@@ -28,8 +30,6 @@ export default [
         component: () => import('@/pages/publik/FeedPage.vue'),
       },
       {
-        // Feed boleh dilihat tanpa login. Halaman yang sama juga dipakai di rute
-        // 'warga-feed' (router/routes/warga.routes.js) supaya warga melihatnya di dashboard.
         path: 'statistik',
         name: 'statistik',
         component: () => import('@/pages/publik/StatistikPage.vue'),
@@ -45,17 +45,24 @@ export default [
         name: 'papan-transparansi',
         component: () => import('@/pages/publik/PapanTransparansiPage.vue'),
       },
+    ],
+  },
+  {
+    // Path tetap /masuk dan /daftar, hanya pembungkusnya yang beda.
+    path: '/',
+    component: () => import('@/layouts/AuthLayout.vue'),
+    children: [
       {
         path: 'masuk',
         name: 'masuk',
         component: () => import('@/pages/publik/MasukPage.vue'),
-        meta: { guestOnly: true },
+        meta: { guestOnly: true, authVariant: 'masuk' },
       },
       {
         path: 'daftar',
         name: 'daftar',
         component: () => import('@/pages/publik/DaftarPage.vue'),
-        meta: { guestOnly: true },
+        meta: { guestOnly: true, authVariant: 'daftar' },
       },
     ],
   },
