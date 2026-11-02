@@ -51,7 +51,9 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   ├── assets/
     │   │   ├── images/
     │   │   |   ├── gedung-banner.svg
-    │   │   |   ├── hero-photo.svg     ← warna, font, spacing
+    │   │   |   ├── hero-photo.svg
+    │   │   |   ├── auth-illustration.svg
+    │   │   |   ├── auth-illustration-daftar.svg   
     │   │   |   └── swirl.svg
     │   │   └── styles/
     │   │       ├── main.css          ← pindahan dari style.css
@@ -75,7 +77,9 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── layout/               ← bagian-bagian layout
     │   │   │   ├── AppNavbar.vue
     │   │   │   ├── AppFooter.vue
+    │   │   │   ├── AppTopbar.vue
     │   │   │   ├── AppLogo.vue
+    │   │   │   ├── AuthCard.vue
     │   │   │   ├── AppSidebar.vue
     │   │   │   └── AppBreadcrumb.vue
     │   │   ├── admin/  
@@ -99,6 +103,8 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │       ├── LaporanCard.vue
     │   │       ├── LaporanForm.vue
     │   │       ├── FeedCard.vue
+    │   │       ├── FeedSidePanel.vue
+    │   │       ├── FeedFilterBar.vue
     │   │       ├── LaporanFilter.vue
     │   │       ├── StatusBadge.vue
     │   │       ├── ProgressUpdateForm.vue
@@ -116,8 +122,9 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │
     │   ├── constants/
     │   │   ├── roles.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
-    │   │   ├── berandaDummy.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
-    │   │   ├── brand.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
+    │   │   ├── berandaDummy.js            
+    │   │   ├── feedDummy.js              
+    │   │   ├── brand.js             
     │   │   └── status.js             ← status laporan
     │   │
     │   ├── layouts/                  ← "pembungkus" halaman

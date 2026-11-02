@@ -1,27 +1,26 @@
 <script setup>
-/**
- * BaseButton: tombol dengan state loading.
- * Memakai class global .btn / .btn-primary dari assets/styles/main.css,
- * jadi tampilannya sama dengan link yang diberi class btn (mis. tombol Masuk di navbar).
- *
- * Props
- *  - variant : 'primary' | 'secondary'
- *  - type    : 'button' | 'submit'
- *  - loading : Boolean (tombol dinonaktifkan dan teks diganti saat true)
- *
- * @click dan atribut lain diteruskan otomatis ke <button>.
- */
-defineProps({
-  variant: { type: String, default: 'primary' },
+import { computed } from 'vue'
+
+const props = defineProps({
+  variant: { type: String, default: 'primary' }, // primary | secondary | danger
   type: { type: String, default: 'button' },
   loading: { type: Boolean, default: false },
+  block: { type: Boolean, default: false }, // lebar penuh
 })
+
+const VARIANTS = {
+  primary: 'bg-maroon text-white hover:bg-maroon-dark',
+  secondary: 'border-2 border-maroon text-maroon hover:bg-maroon hover:text-white',
+  danger: 'bg-red-700 text-white hover:bg-red-800',
+}
+const variantClass = computed(() => VARIANTS[props.variant] ?? VARIANTS.secondary)
 </script>
 
 <template>
   <button
     :type="type"
-    :class="['btn', { 'btn-primary': variant === 'primary' }]"
+    class="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-full px-6 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+    :class="[variantClass, block && 'w-full']"
     :disabled="loading"
     :aria-busy="loading"
   >
@@ -29,10 +28,3 @@ defineProps({
     <span v-else>Memproses...</span>
   </button>
 </template>
-
-<style scoped>
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-</style>
