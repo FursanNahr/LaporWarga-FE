@@ -1,7 +1,10 @@
 <script setup>
 import { reactive, ref } from 'vue'
+import { ArrowRight, Mail, Lock } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
 import { validateLogin } from '@/utils/validators'
+import { APP_NAME } from '@/constants/brand'
+import AuthCard from '@/components/layout/AuthCard.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 
@@ -31,27 +34,38 @@ async function onSubmit() {
 </script>
 
 <template>
-  <section class="container page">
-    <h1>Masuk</h1>
+  <AuthCard :title="`Masuk ke ${APP_NAME}`" subtitle="Akses akun Anda untuk melanjutkan">
+    <p v-if="serverError" class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">{{ serverError }}</p>
 
-    <p v-if="serverError" class="form-alert" role="alert">{{ serverError }}</p>
-
-    <form novalidate @submit.prevent="onSubmit">
-      <BaseInput v-model="form.email" label="Email" type="email" autocomplete="email" :error="errors.email" />
+    <form novalidate class="space-y-4" @submit.prevent="onSubmit">
+      <BaseInput
+        v-model="form.email"
+        label="Email"
+        hide-label
+        placeholder="Email"
+        type="email"
+        autocomplete="email"
+        :icon="Mail"
+        :error="errors.email"
+      />
       <BaseInput
         v-model="form.password"
         label="Password"
+        hide-label
+        placeholder="Password"
         type="password"
         autocomplete="current-password"
+        :icon="Lock"
         :error="errors.password"
       />
-      <BaseButton type="submit" :loading="loading">Masuk</BaseButton>
+      <BaseButton type="submit" block :loading="loading">
+        Masuk <ArrowRight class="size-4" aria-hidden="true" />
+      </BaseButton>
     </form>
 
-    <p>Belum punya akun? <RouterLink :to="{ name: 'daftar' }">Daftar</RouterLink></p>
-  </section>
+    <p class="mt-6 text-center text-sm">
+      Belum punya akun?
+      <RouterLink :to="{ name: 'daftar' }" class="font-bold underline underline-offset-2">Daftar di sini</RouterLink>
+    </p>
+  </AuthCard>
 </template>
-
-<style scoped>
-.page { padding-top: 2rem; padding-bottom: 2rem; max-width: 420px; }
-</style>

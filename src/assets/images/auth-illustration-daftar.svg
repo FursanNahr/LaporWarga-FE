@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 400" fill="none" stroke="#44242d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="290" cy="400" rx="380" ry="60" fill="#f5ebdf" stroke="none"/>
+  <!-- pohon belakang -->
+  <circle cx="40" cy="270" r="44" fill="#c1f52f"/><circle cx="530" cy="250" r="46" fill="#c1f52f"/><circle cx="500" cy="300" r="40" fill="#c1f52f"/>
+  <!-- bangunan -->
+  <rect x="150" y="215" width="260" height="130" fill="#fffbf7"/>
+  <path d="M135 215h290l-28-30H163z" fill="#44242d"/>
+  <rect x="215" y="160" width="130" height="55" fill="#fffbf7"/>
+  <path d="M203 160h154l-22-28H225z" fill="#44242d"/>
+  <path d="M236 132h88l-12-24h-64zM256 108h48l-8-18h-32z" fill="#fffbf7"/>
+  <path d="M280 90V50M273 50h14"/>
+  <g fill="#44242d" stroke="none"><rect x="232" y="170" width="14" height="22"/><rect x="258" y="170" width="14" height="22"/><rect x="284" y="170" width="14" height="22"/><rect x="310" y="170" width="14" height="22"/><rect x="172" y="235" width="18" height="26"/><rect x="206" y="235" width="18" height="26"/><rect x="342" y="235" width="18" height="26"/><rect x="376" y="235" width="18" height="26"/></g>
+  <!-- gelembung seru -->
+  <circle cx="110" cy="110" r="36" fill="#fffbf7"/><path d="M96 138l-10 18 26-12"  fill="#fffbf7"/>
+  <path d="M110 92v22M110 126v1" stroke-width="6"/>
+  <path d="M50 160l-16-8M60 150l-8-16" stroke="#44242d"/>
+  <!-- orang kiri (hoodie) -->
+  <path d="M30 400C30 330 65 295 110 295s80 35 80 105z" fill="#44242d"/>
+  <circle cx="108" cy="250" r="34" fill="#fffbf7"/>
+  <path d="M72 246c-4-34 20-52 46-46 22 4 30 24 24 44-6-22-22-30-40-28-16 2-28 12-30 30z" fill="#44242d"/>
+  <rect x="150" y="300" width="22" height="40" rx="5" fill="#fffbf7" transform="rotate(-12 160 320)"/>
+  <!-- orang tengah (rambut panjang) -->
+  <ellipse cx="275" cy="262" rx="46" ry="54" fill="#44242d"/>
+  <path d="M205 400C205 335 235 305 275 305s70 30 70 95z" fill="#f5ebdf"/>
+  <circle cx="275" cy="258" r="34" fill="#fffbf7"/>
+  <path d="M244 250c4-22 40-28 60-4-10-8-34-10-60 4z" fill="#44242d"/>
+  <path d="M325 345l50-42" stroke-width="5"/>
+  <!-- orang kanan (tas ransel) -->
+  <path d="M385 400C385 335 410 298 445 298s60 37 60 102z" fill="#c1f52f"/>
+  <path d="M410 305c-8 30-10 60-8 95M480 305c8 30 10 60 8 95" stroke="#44242d"/>
+  <circle cx="448" cy="256" r="32" fill="#fffbf7"/>
+  <path d="M418 252c-2-30 20-44 44-38 22 6 28 26 18 44-4-18-18-26-34-24-14 2-24 8-28 18z" fill="#44242d"/>
+</svg>
