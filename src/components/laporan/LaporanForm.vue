@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
+import { Building2, ChevronDown, ImagePlus, LayoutGrid, LocateFixed, X } from 'lucide-vue-next'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { REPORT_PHOTO, validatePhotoFile, validateReport } from '@/utils/validators'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import LocationPicker from '@/components/laporan/LocationPicker.vue'
 
 /**
  * LaporanForm: form membuat laporan (POST /reports, multipart).
@@ -34,6 +36,7 @@ const form = reactive({
 const photos = ref([]) // [{ file, url }]  url = object URL untuk pratinjau
 const localErrors = ref({})
 const photoNotice = ref('') // pesan saat memilih file (format/ukuran/jumlah)
+const dragging = ref(false) // true saat file sedang diseret ke area upload
 
 const { loading: locating, error: geoError, locate } = useGeolocation()
 
@@ -49,21 +52,26 @@ const selectedAgency = computed(() => {
   return ''
 })
 
-async function fillMyLocation() {
-  const position = await locate()
-  if (!position) return
-  form.latitude = position.latitude.toFixed(6)
-  form.longitude = position.longitude.toFixed(6)
+const photosFull = computed(() => photos.value.length >= REPORT_PHOTO.maxFiles)
+const descriptionLength = computed(() => form.description.trim().length)
+
+// Titik lokasi dari tombol "Gunakan lokasi saya" maupun klik/geser pin di peta
+function setCoordinates({ latitude, longitude }) {
+  form.latitude = latitude.toFixed(6)
+  form.longitude = longitude.toFixed(6)
   delete localErrors.value.latitude
   delete localErrors.value.longitude
 }
 
-function onPickPhotos(event) {
-  const picked = Array.from(event.target.files ?? [])
-  event.target.value = '' // supaya file yang sama bisa dipilih lagi setelah dihapus
+async function fillMyLocation() {
+  const position = await locate()
+  if (!position) return
+  setCoordinates(position)
+}
 
+function addPhotos(files) {
   const notices = []
-  for (const file of picked) {
+  for (const file of files) {
     if (photos.value.length >= REPORT_PHOTO.maxFiles) {
       notices.push(`Maksimal ${REPORT_PHOTO.maxFiles} foto`)
       break
@@ -78,6 +86,17 @@ function onPickPhotos(event) {
 
   photoNotice.value = notices.join('. ')
   if (photos.value.length) delete localErrors.value.photos
+}
+
+function onPickPhotos(event) {
+  const picked = Array.from(event.target.files ?? [])
+  event.target.value = '' // supaya file yang sama bisa dipilih lagi setelah dihapus
+  addPhotos(picked)
+}
+
+function onDropPhotos(event) {
+  dragging.value = false
+  addPhotos(Array.from(event.dataTransfer?.files ?? []))
 }
 
 function removePhoto(index) {
@@ -104,186 +123,197 @@ function onSubmit() {
 
   emit('submit', data)
 }
+
+// Kelas bersama supaya textarea / select seragam dengan BaseInput (h-12, rounded-full, bg-white/60).
+const labelClass = 'mb-1.5 block text-sm font-bold text-maroon'
+const controlClass =
+  'w-full border bg-white/60 text-sm placeholder:text-maroon/50 focus:outline-none focus:ring-2 focus:ring-lime'
+const borderClass = (hasError) => (hasError ? 'border-red-600' : 'border-maroon/25 focus:border-maroon')
+const errorClass = 'mt-1.5 px-2 text-xs font-medium text-red-700'
 </script>
 
 <template>
-  <form class="report-form" novalidate @submit.prevent="onSubmit">
-    <div class="field">
-      <label for="report-description">Deskripsi laporan</label>
+  <form class="space-y-6" novalidate @submit.prevent="onSubmit">
+    <!-- Jenis laporan -->
+    <div>
+      <label for="report-subcategory" :class="labelClass">Jenis Laporan</label>
+      <div class="relative">
+        <LayoutGrid
+          class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-maroon"
+          aria-hidden="true"
+        />
+        <select
+          id="report-subcategory"
+          v-model="form.subcategoryId"
+          :class="[
+            controlClass,
+            borderClass(shown.subcategoryId),
+            'h-12 cursor-pointer appearance-none rounded-full pl-12 pr-12',
+            form.subcategoryId === '' ? 'text-maroon/50' : 'text-maroon',
+          ]"
+          :aria-invalid="!!shown.subcategoryId"
+        >
+          <option value="">Pilih jenis laporan</option>
+          <optgroup v-for="category in categories" :key="category.id" :label="category.name">
+            <option v-for="sub in category.subcategories" :key="sub.id" :value="sub.id" class="text-maroon">
+              {{ sub.name }}
+            </option>
+          </optgroup>
+        </select>
+        <ChevronDown
+          class="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-maroon"
+          aria-hidden="true"
+        />
+      </div>
+      <p v-if="selectedAgency" class="mt-2 flex items-center gap-2 px-2 text-xs font-medium text-maroon/70">
+        <Building2 class="size-4 shrink-0" aria-hidden="true" />
+        Ditangani oleh: {{ selectedAgency }}
+      </p>
+      <p v-if="shown.subcategoryId" :class="errorClass" role="alert">{{ shown.subcategoryId }}</p>
+    </div>
+
+    <!-- Lokasi kejadian -->
+    <fieldset class="min-w-0">
+      <legend class="text-sm font-bold text-maroon">Lokasi Kejadian</legend>
+
+      <div class="mt-1.5 space-y-4 rounded-3xl border border-maroon/25 bg-white/60 p-4 sm:p-5">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <BaseButton variant="secondary" :loading="locating" @click="fillMyLocation">
+            <LocateFixed class="size-4" aria-hidden="true" />
+            Gunakan lokasi saya
+          </BaseButton>
+          <p class="text-xs text-maroon/60">atau klik peta / geser pin untuk memilih lokasi</p>
+        </div>
+        <p v-if="geoError" :class="errorClass" role="alert">{{ geoError }}</p>
+
+        <LocationPicker
+          class="h-64 sm:h-80"
+          :latitude="form.latitude"
+          :longitude="form.longitude"
+          @pick="setCoordinates"
+        />
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <BaseInput
+            v-model="form.latitude"
+            label="Latitude"
+            type="number"
+            step="any"
+            inputmode="decimal"
+            placeholder="-6.914744"
+            :error="shown.latitude"
+          />
+          <BaseInput
+            v-model="form.longitude"
+            label="Longitude"
+            type="number"
+            step="any"
+            inputmode="decimal"
+            placeholder="107.609810"
+            :error="shown.longitude"
+          />
+        </div>
+
+        <BaseInput
+          v-model="form.address"
+          label="Alamat (opsional)"
+          autocomplete="street-address"
+          :error="shown.address"
+        />
+      </div>
+    </fieldset>
+
+    <!-- Deskripsi -->
+    <div>
+      <label for="report-description" :class="labelClass">Deskripsi Laporan</label>
       <textarea
         id="report-description"
         v-model="form.description"
-        class="control"
         rows="5"
+        :class="[controlClass, borderClass(shown.description), 'min-h-32 resize-y rounded-3xl px-5 py-3.5 text-maroon']"
         placeholder="Ceritakan apa yang terjadi, sejak kapan, dan dampaknya"
         :aria-invalid="!!shown.description"
       ></textarea>
-      <span class="field__hint">{{ form.description.trim().length }}/2000</span>
-      <span v-if="shown.description" class="field__error" role="alert">{{ shown.description }}</span>
-    </div>
-
-    <div class="field">
-      <label for="report-subcategory">Jenis laporan</label>
-      <select
-        id="report-subcategory"
-        v-model="form.subcategoryId"
-        class="control"
-        :aria-invalid="!!shown.subcategoryId"
-      >
-        <option value="">Pilih jenis laporan</option>
-        <optgroup v-for="category in categories" :key="category.id" :label="category.name">
-          <option v-for="sub in category.subcategories" :key="sub.id" :value="sub.id">
-            {{ sub.name }}
-          </option>
-        </optgroup>
-      </select>
-      <span v-if="selectedAgency" class="field__hint">Ditangani oleh: {{ selectedAgency }}</span>
-      <span v-if="shown.subcategoryId" class="field__error" role="alert">{{ shown.subcategoryId }}</span>
-    </div>
-
-    <fieldset class="group">
-      <legend>Lokasi kejadian</legend>
-
-      <BaseButton variant="secondary" :loading="locating" @click="fillMyLocation">
-        Gunakan lokasi saya
-      </BaseButton>
-      <p v-if="geoError" class="field__error" role="alert">{{ geoError }}</p>
-
-      <div class="group__row">
-        <BaseInput
-          v-model="form.latitude"
-          label="Latitude"
-          type="number"
-          step="any"
-          inputmode="decimal"
-          placeholder="-6.914744"
-          :error="shown.latitude"
-        />
-        <BaseInput
-          v-model="form.longitude"
-          label="Longitude"
-          type="number"
-          step="any"
-          inputmode="decimal"
-          placeholder="107.609810"
-          :error="shown.longitude"
-        />
+      <div class="mt-1.5 flex items-start justify-between gap-3 px-2">
+        <p v-if="shown.description" class="text-xs font-medium text-red-700" role="alert">{{ shown.description }}</p>
+        <span v-else></span>
+        <span class="text-xs" :class="descriptionLength > 2000 ? 'font-semibold text-red-700' : 'text-maroon/60'">
+          {{ descriptionLength }}/2000
+        </span>
       </div>
+    </div>
 
-      <BaseInput
-        v-model="form.address"
-        label="Alamat (opsional)"
-        autocomplete="street-address"
-        :error="shown.address"
-      />
-    </fieldset>
+    <!-- Foto bukti -->
+    <div>
+      <div class="flex items-baseline justify-between gap-3">
+        <span class="text-sm font-bold text-maroon">Foto Bukti</span>
+        <span class="text-xs font-medium text-maroon/60">{{ photos.length }}/{{ REPORT_PHOTO.maxFiles }}</span>
+      </div>
+      <p id="report-photos-hint" class="mb-2 mt-0.5 text-xs text-maroon/60">
+        Minimal 1, maksimal {{ REPORT_PHOTO.maxFiles }} foto. Maksimal {{ REPORT_PHOTO.maxSizeMB }} MB per foto
+        (JPG, PNG, atau WEBP).
+      </p>
 
-    <div class="field">
-      <label for="report-photos">Foto</label>
+      <!-- Input asli disembunyikan; label di bawah jadi area klik + drag-and-drop -->
       <input
         id="report-photos"
-        class="control"
+        class="peer sr-only"
         type="file"
         multiple
         accept="image/jpeg,image/png,image/webp"
+        aria-describedby="report-photos-hint"
+        :disabled="photosFull"
         :aria-invalid="!!(shown.photos || photoNotice)"
         @change="onPickPhotos"
       />
-      <span class="field__hint">
-        Minimal 1, maksimal {{ REPORT_PHOTO.maxFiles }} foto. Maksimal {{ REPORT_PHOTO.maxSizeMB }} MB per
-        foto (JPG, PNG, atau WEBP).
-      </span>
-      <span v-if="photoNotice" class="field__error" role="alert">{{ photoNotice }}</span>
-      <span v-if="shown.photos" class="field__error" role="alert">{{ shown.photos }}</span>
+      <label
+        for="report-photos"
+        class="flex min-h-24 cursor-pointer items-center justify-center gap-3 rounded-3xl border px-6 py-6 text-center text-sm font-semibold text-maroon transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-lime peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
+        :class="[
+          dragging
+            ? 'border-maroon bg-lime/20'
+            : shown.photos
+              ? 'border-red-600 bg-sand'
+              : 'border-sand-dark bg-sand hover:bg-sand-dark/50',
+        ]"
+        @dragover.prevent="dragging = true"
+        @dragleave="dragging = false"
+        @drop.prevent="onDropPhotos"
+      >
+        <ImagePlus class="pointer-events-none size-6 shrink-0" aria-hidden="true" />
+        <span class="pointer-events-none">
+          {{ photosFull ? 'Jumlah foto maksimal tercapai' : 'Pilih foto atau unggah di sini' }}
+        </span>
+      </label>
 
-      <ul v-if="photos.length" class="previews">
-        <li v-for="(photo, index) in photos" :key="photo.url" class="previews__item">
-          <img :src="photo.url" :alt="`Pratinjau foto ${index + 1}`" />
+      <p v-if="photoNotice" :class="errorClass" role="alert">{{ photoNotice }}</p>
+      <p v-if="shown.photos" :class="errorClass" role="alert">{{ shown.photos }}</p>
+
+      <ul v-if="photos.length" class="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
+        <li
+          v-for="(photo, index) in photos"
+          :key="photo.url"
+          class="relative aspect-square overflow-hidden rounded-2xl border border-maroon/15 bg-sand"
+        >
+          <img :src="photo.url" :alt="`Pratinjau foto ${index + 1}`" class="size-full object-cover" />
           <button
             type="button"
-            class="previews__remove"
+            class="absolute right-1.5 top-1.5 flex size-7 cursor-pointer items-center justify-center rounded-full bg-maroon text-white shadow transition-colors hover:bg-maroon-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-lime"
             :aria-label="`Hapus foto ${index + 1}`"
             @click="removePhoto(index)"
           >
-            &times;
+            <X class="size-4" aria-hidden="true" />
           </button>
         </li>
       </ul>
     </div>
 
-    <label class="check">
-      <input v-model="form.isAnonymous" type="checkbox" />
+    <!-- Anonim -->
+    <label class="flex cursor-pointer items-center gap-3 text-sm font-medium text-maroon">
+      <input v-model="form.isAnonymous" type="checkbox" class="size-5 shrink-0 cursor-pointer rounded accent-maroon" />
       Sembunyikan identitasku (laporan anonim)
     </label>
 
-    <BaseButton type="submit" :loading="loading">Kirim laporan</BaseButton>
+    <BaseButton type="submit" class="w-full sm:w-auto" :loading="loading">Kirim laporan</BaseButton>
   </form>
 </template>
-
-<style scoped>
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-}
-.field__hint { font-size: 0.8125rem; color: var(--color-text-muted); }
-.field__error { color: #b91c1c; font-size: 0.875rem; }
-.control[aria-invalid='true'] { border-color: #b91c1c; }
-
-.group {
-  margin: 0 0 1rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-.group legend { padding: 0 0.25rem; }
-.group__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.previews {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.previews__item { position: relative; }
-.previews__item img {
-  display: block;
-  width: 96px;
-  height: 96px;
-  object-fit: cover;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-}
-.previews__remove {
-  position: absolute;
-  top: -0.5rem;
-  right: -0.5rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 0;
-  border-radius: 50%;
-  background: #991b1b;
-  color: #fff;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-
-@media (max-width: 480px) {
-  .group__row { grid-template-columns: 1fr; }
-}
-</style>
