@@ -53,25 +53,40 @@ function resetForm() {
   formKey.value++
 }
 
+// Link bergaya tombol (RouterLink tidak bisa memakai BaseButton yang berupa <button>)
+const linkBase =
+  'inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-bold transition-colors'
+const linkPrimary = `${linkBase} bg-maroon text-white hover:bg-maroon-dark`
+const linkSecondary = `${linkBase} border-2 border-maroon text-maroon hover:bg-maroon hover:text-white`
+
 onMounted(loadCategories)
 </script>
 
 <template>
-  <section class="container page">
-    <h1>Buat Laporan</h1>
+  <section class="mx-auto w-full max-w-3xl px-4 py-8 sm:px-8 sm:py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl font-extrabold text-maroon sm:text-3xl">Buat Laporan</h1>
+      <p class="mt-1.5 text-sm text-maroon/70">
+        Laporkan masalah fasilitas publik di sekitarmu, lengkap dengan lokasi dan foto bukti.
+      </p>
+    </header>
 
     <BaseCard v-if="created">
-      <div class="success">
-        <h2>Laporan berhasil dikirim</h2>
-        <p>Kode laporanmu:</p>
-        <p class="success__code">{{ created.trackingCode }}</p>
-        <p>Laporan akan diperiksa admin lebih dulu sebelum tampil di halaman publik.</p>
-        <div class="success__actions">
-          <RouterLink class="btn btn-primary" :to="{ name: 'detail-laporan', params: { id: created.id } }">
+      <div class="flex flex-col items-center gap-3 p-6 text-center sm:p-8">
+        <h2 class="text-xl font-extrabold text-maroon">Laporan berhasil dikirim</h2>
+        <p class="text-sm text-maroon/70">Kode laporanmu:</p>
+        <p class="rounded-full bg-lime px-5 py-2 font-mono text-lg font-extrabold tracking-wide text-maroon">
+          {{ created.trackingCode }}
+        </p>
+        <p class="max-w-md text-sm text-maroon/70">
+          Laporan akan diperiksa admin lebih dulu sebelum tampil di halaman publik.
+        </p>
+        <div class="mt-2 flex flex-wrap justify-center gap-3">
+          <RouterLink :class="linkPrimary" :to="{ name: 'detail-laporan', params: { id: created.id } }">
             Lihat laporan
           </RouterLink>
-          <RouterLink class="btn" :to="{ name: 'warga-laporan-saya' }">Laporan Saya</RouterLink>
-          <button class="btn" type="button" @click="resetForm">Buat laporan lagi</button>
+          <RouterLink :class="linkSecondary" :to="{ name: 'warga-laporan-saya' }">Laporan Saya</RouterLink>
+          <BaseButton variant="secondary" @click="resetForm">Buat laporan lagi</BaseButton>
         </div>
       </div>
     </BaseCard>
@@ -79,13 +94,21 @@ onMounted(loadCategories)
     <template v-else>
       <BaseLoading v-if="loadingCategories" />
 
-      <template v-else-if="categoriesError">
-        <p class="form-alert" role="alert">{{ categoriesError }}</p>
+      <div v-else-if="categoriesError" class="space-y-4">
+        <p class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+          {{ categoriesError }}
+        </p>
         <BaseButton variant="secondary" @click="loadCategories">Coba lagi</BaseButton>
-      </template>
+      </div>
 
       <template v-else>
-        <p v-if="serverError" class="form-alert" role="alert">{{ serverError }}</p>
+        <p
+          v-if="serverError"
+          class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          role="alert"
+        >
+          {{ serverError }}
+        </p>
         <LaporanForm
           :key="formKey"
           :categories="categories"
@@ -97,17 +120,3 @@ onMounted(loadCategories)
     </template>
   </section>
 </template>
-
-<style scoped>
-.page { padding-top: 2rem; padding-bottom: 2rem; max-width: 720px; }
-.success { padding: 1.5rem; }
-.success h2 { margin-top: 0; }
-.success__code {
-  margin: 0 0 1rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--color-primary);
-}
-.success__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-</style>
