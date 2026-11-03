@@ -106,6 +106,8 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │       ├── FeedSidePanel.vue
     │   │       ├── FeedFilterBar.vue
     │   │       ├── LaporanFilter.vue
+    │   │       ├── LaporanSayaCard.vue
+    │   │       ├── ProgressSteps.vue
     │   │       ├── LocationPicker.vue
     │   │       ├── StatusBadge.vue
     │   │       ├── ProgressUpdateForm.vue
