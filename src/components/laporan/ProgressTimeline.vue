@@ -1,133 +1,125 @@
 <script setup>
+import { computed } from 'vue'
+import { ArrowRight, Check, CircleCheck, Clock, Wrench, X } from 'lucide-vue-next'
 import { assetUrl } from '@/api'
+import { REPORT_STATUS } from '@/constants/status'
 import { formatDateTime } from '@/utils/formatDate'
 import { formatDistance, humanizeEnum } from '@/utils/formatStatus'
 import StatusBadge from '@/components/laporan/StatusBadge.vue'
+import StatusPill from '@/components/laporan/StatusPill.vue'
 
 /**
- * ProgressTimeline: riwayat progres laporan (urut dari yang paling lama).
+ * ProgressTimeline: riwayat progres laporan.
  * `items` = report.timeline dari GET /reports/:id, tiap item:
  *   { id, fromStatus, toStatus, note, createdAt, actor: { name, role }, attachments: [...] }
+ *
+ * Default (dipakai halaman admin dan instansi): urut lama -> baru, tiap entri "dari -> ke".
+ * `friendly` (halaman Detail publik): satu lencana per entri dan catatan bawaan kalau petugas
+ * tidak menulis catatan. `newestFirst`: yang terbaru di atas.
  */
-defineProps({
+const props = defineProps({
   items: { type: Array, default: () => [] },
+  newestFirst: { type: Boolean, default: false },
+  friendly: { type: Boolean, default: false },
 })
 
+const rows = computed(() => (props.newestFirst ? [...props.items].reverse() : props.items))
+
+// Ikon di titik timeline mengikuti status tujuan.
+const NODE_ICON = {
+  [REPORT_STATUS.MENUNGGU_VERIFIKASI]: Clock,
+  [REPORT_STATUS.TERVERIFIKASI]: Check,
+  [REPORT_STATUS.DITOLAK]: X,
+  [REPORT_STATUS.DITERUSKAN]: ArrowRight,
+  [REPORT_STATUS.DALAM_PENANGANAN]: Wrench,
+  [REPORT_STATUS.SELESAI]: CircleCheck,
+}
+const NODE_TONE = {
+  [REPORT_STATUS.SELESAI]: 'border-emerald-600 bg-emerald-600 text-white',
+  [REPORT_STATUS.DITOLAK]: 'border-red-300 bg-red-50 text-red-700',
+}
+const nodeIcon = (item) => NODE_ICON[item.toStatus] ?? Clock
+const nodeTone = (item) => NODE_TONE[item.toStatus] ?? 'border-sand-dark bg-white text-maroon'
+
+const DEFAULT_NOTE = {
+  [REPORT_STATUS.MENUNGGU_VERIFIKASI]: 'Laporan diterima dan menunggu verifikasi.',
+  [REPORT_STATUS.TERVERIFIKASI]: 'Laporan telah diverifikasi oleh admin.',
+  [REPORT_STATUS.DITOLAK]: 'Laporan ditolak.',
+  [REPORT_STATUS.DITERUSKAN]: 'Laporan diteruskan ke instansi yang menangani.',
+  [REPORT_STATUS.DALAM_PENANGANAN]: 'Petugas mulai menangani laporan.',
+  [REPORT_STATUS.SELESAI]: 'Laporan telah ditangani dan diselesaikan oleh instansi.',
+}
+function noteOf(item) {
+  if (item.note) return item.note
+  if (!props.friendly) return ''
+  // Status tidak berubah = catatan tanpa isi.
+  return item.fromStatus === item.toStatus ? 'Petugas memperbarui progres.' : (DEFAULT_NOTE[item.toStatus] ?? '')
+}
+
 const isImage = (attachment) => /\.(jpe?g|png|webp|gif)$/i.test(attachment.url || attachment.fileName || '')
+const hasDistance = (attachment) =>
+  attachment.distanceFromReportM !== null && attachment.distanceFromReportM !== undefined
 </script>
 
 <template>
-  <ol v-if="items.length" class="timeline">
-    <li v-for="item in items" :key="item.id" class="timeline__item">
-      <span class="timeline__dot" aria-hidden="true"></span>
+  <ol
+    v-if="rows.length"
+    class="relative before:absolute before:inset-y-5 before:left-5 before:w-0.5 before:-translate-x-1/2 before:bg-sand-dark"
+  >
+    <li v-for="item in rows" :key="item.id" class="group relative pb-5 pl-16 last:pb-0">
+      <span
+        class="absolute left-0 top-0 grid size-10 place-items-center rounded-full border-2"
+        :class="nodeTone(item)"
+        aria-hidden="true"
+      >
+        <component :is="nodeIcon(item)" class="size-[18px]" />
+      </span>
 
-      <div class="timeline__content">
-        <div class="timeline__status">
-          <template v-if="item.fromStatus">
-            <StatusBadge :status="item.fromStatus" />
-            <span aria-label="menjadi">→</span>
-          </template>
-          <StatusBadge :status="item.toStatus" />
+      <div class="border-b border-sand-dark/60 pb-5 group-last:border-b-0 group-last:pb-0">
+        <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <template v-if="!friendly && item.fromStatus">
+              <StatusBadge :status="item.fromStatus" />
+              <span aria-label="menjadi">→</span>
+            </template>
+            <StatusPill v-if="friendly" :status="item.toStatus" />
+            <StatusBadge v-else :status="item.toStatus" />
+          </div>
+          <time class="text-xs text-maroon/70" :datetime="item.createdAt">{{ formatDateTime(item.createdAt) }}</time>
         </div>
 
-        <p v-if="item.note" class="timeline__note">{{ item.note }}</p>
+        <p v-if="noteOf(item)" class="mt-2 text-sm">{{ noteOf(item) }}</p>
 
-        <p class="timeline__meta">
-          {{ item.actor.name }} ({{ humanizeEnum(item.actor.role) }}) · {{ formatDateTime(item.createdAt) }}
+        <p class="mt-1 text-xs text-maroon/60">
+          {{ item.actor?.name }}<template v-if="item.actor?.role"> ({{ humanizeEnum(item.actor.role) }})</template>
         </p>
 
-        <ul v-if="item.attachments?.length" class="timeline__attachments">
-          <li v-for="attachment in item.attachments" :key="attachment.id">
-            <a :href="assetUrl(attachment.url)" target="_blank" rel="noopener">
+        <ul v-if="item.attachments?.length" class="mt-3 flex flex-wrap gap-3">
+          <li v-for="attachment in item.attachments" :key="attachment.id" class="max-w-40">
+            <a
+              :href="assetUrl(attachment.url)"
+              target="_blank"
+              rel="noopener"
+              class="block overflow-hidden rounded-xl border border-sand-dark hover:border-maroon"
+            >
               <img
                 v-if="isImage(attachment)"
                 :src="assetUrl(attachment.url)"
                 :alt="`Lampiran ${humanizeEnum(attachment.kind)}`"
                 loading="lazy"
+                class="block h-[84px] w-28 object-cover"
               />
-              <span v-else>{{ attachment.fileName || 'Buka lampiran' }}</span>
+              <span v-else class="block px-3 py-2 text-sm font-semibold underline">{{ attachment.fileName || 'Buka lampiran' }}</span>
             </a>
-            <span class="timeline__caption">
+            <span class="mt-1 block text-xs text-maroon/60">
               {{ humanizeEnum(attachment.kind) }}
               <template v-if="attachment.capturedAt"> · {{ formatDateTime(attachment.capturedAt) }}</template>
-              <template v-if="attachment.distanceFromReportM !== null && attachment.distanceFromReportM !== undefined">
-                · {{ formatDistance(attachment.distanceFromReportM) }} dari lokasi laporan
-              </template>
+              <template v-if="hasDistance(attachment)"> · {{ formatDistance(attachment.distanceFromReportM) }} dari lokasi laporan</template>
             </span>
           </li>
         </ul>
       </div>
     </li>
   </ol>
-  <p v-else class="timeline__empty">Belum ada riwayat progres.</p>
+  <p v-else class="text-sm text-maroon/60">Belum ada riwayat progres.</p>
 </template>
-
-<style scoped>
-.timeline {
-  position: relative;
-  margin: 0;
-  padding: 0 0 0 1.5rem;
-  list-style: none;
-}
-.timeline::before {
-  content: '';
-  position: absolute;
-  top: 0.5rem;
-  bottom: 0.5rem;
-  left: 0.4375rem;
-  width: 2px;
-  background: var(--color-border);
-}
-.timeline__item {
-  position: relative;
-  padding-bottom: 1.5rem;
-}
-.timeline__item:last-child { padding-bottom: 0; }
-.timeline__dot {
-  position: absolute;
-  top: 0.375rem;
-  left: -1.5rem;
-  width: 0.9375rem;
-  height: 0.9375rem;
-  border-radius: 50%;
-  background: var(--color-primary);
-  border: 3px solid var(--color-bg);
-  box-shadow: 0 0 0 1px var(--color-primary);
-}
-.timeline__status {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.timeline__note { margin: 0.5rem 0 0; }
-.timeline__meta {
-  margin: 0.25rem 0 0;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-}
-.timeline__attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.timeline__attachments img {
-  display: block;
-  width: 120px;
-  height: 90px;
-  object-fit: cover;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-}
-.timeline__caption {
-  display: block;
-  max-width: 160px;
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-.timeline__empty { color: var(--color-text-muted); }
-</style>
