@@ -7,6 +7,8 @@
 //
 // meta.guestOnly: hanya untuk yang belum login (dicek di router/index.js).
 // meta.authVariant: pilih teks + ilustrasi di AuthLayout ('masuk' | 'daftar').
+import { useAuthStore } from '@/stores/auth.store'
+
 export default [
   {
     path: '/',
@@ -39,6 +41,10 @@ export default [
         path: 'laporan/:id(\\d+)',
         name: 'detail-laporan',
         component: () => import('@/pages/publik/DetailLaporanPage.vue'),
+        beforeEnter: (to) =>
+          useAuthStore().role === 'warga'
+            ? { name: 'warga-detail-laporan', params: to.params, query: to.query, hash: to.hash }
+            : true,
       },
       {
         path: 'papan-transparansi',
