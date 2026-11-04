@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { CircleCheck, LoaderCircle, MapPin, RefreshCw, TriangleAlert } from 'lucide-vue-next'
 import { instansiApi } from '@/api/instansi.api'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { PROGRESS_ACTION, PROGRESS_ACTIONS, actionsForStatus } from '@/constants/status'
 import { formatDistance } from '@/utils/formatStatus'
 import { distanceInMeters } from '@/utils/geo'
 import BaseButton from '@/components/common/BaseButton.vue'
+import ProgressFileField from '@/components/laporan/ProgressFileField.vue'
 
 /**
  * ProgressUpdateForm: petugas memperbarui progres laporan (POST /reports/:id/progress).
@@ -51,6 +53,21 @@ const distance = computed(() =>
 const withinRadius = computed(
   () => distance.value !== null && distance.value <= AFTER_PHOTO_RADIUS_M,
 )
+
+// Hanya untuk tampilan panel radius di template (tidak dipakai logika kirim).
+const radiusState = computed(() => {
+  if (locating.value) return 'checking'
+  if (coords.value) return withinRadius.value ? 'ok' : 'far'
+  if (geoError.value) return 'error'
+  return 'idle'
+})
+const RADIUS_TONE = {
+  ok: 'border-emerald-300 bg-emerald-50 text-emerald-900',
+  far: 'border-red-300 bg-red-50 text-red-800',
+  error: 'border-red-300 bg-red-50 text-red-800',
+  checking: 'border-sand-dark bg-sand text-maroon',
+  idle: 'border-sand-dark bg-sand text-maroon',
+}
 
 // ---- File ------------------------------------------------------------------
 const files = reactive({ photos: [], afterPhotos: [], documents: [] })
@@ -217,193 +234,113 @@ async function submit() {
 </script>
 
 <template>
-  <form class="progress-form" novalidate @submit.prevent="submit">
-    <fieldset v-if="actions.length > 1" class="progress-form__actions">
-      <legend>Pilih tindakan</legend>
-      <label v-for="key in actions" :key="key" class="progress-form__option">
-        <input v-model="action" type="radio" name="progress-action" :value="key" />
+  <form class="space-y-6" novalidate @submit.prevent="submit">
+    <!-- Pilihan aksi (hanya jika lebih dari satu), atau judul aksi tunggal -->
+    <fieldset v-if="actions.length > 1" class="space-y-2">
+      <legend class="mb-2 text-sm font-bold">Pilih tindakan</legend>
+      <label
+        v-for="item in actions"
+        :key="item"
+        class="flex cursor-pointer items-start gap-3 rounded-2xl border border-sand-dark bg-white p-4 transition-colors has-checked:border-maroon has-checked:bg-lime/20"
+      >
+        <input v-model="action" type="radio" name="progress-action" :value="item" class="mt-1 size-4 accent-maroon" />
         <span>
-          <strong>{{ PROGRESS_ACTIONS[key].label }}</strong>
-          <small>{{ PROGRESS_ACTIONS[key].description }}</small>
+          <span class="block text-sm font-extrabold">{{ PROGRESS_ACTIONS[item].label }}</span>
+          <span class="mt-0.5 block text-xs text-maroon/70">{{ PROGRESS_ACTIONS[item].description }}</span>
         </span>
       </label>
     </fieldset>
-    <p v-else-if="action" class="progress-form__single">
-      <strong>{{ PROGRESS_ACTIONS[action].label }}</strong>
-      <small>{{ PROGRESS_ACTIONS[action].description }}</small>
-    </p>
+    <div v-else>
+      <p class="text-lg font-extrabold">{{ submitLabel }}</p>
+      <p class="mt-0.5 text-sm text-maroon/70">{{ PROGRESS_ACTIONS[action]?.description }}</p>
+    </div>
 
-    <div class="field">
-      <label for="progress-note">Catatan{{ noteRequired ? ' (wajib)' : ' (opsional)' }}</label>
+    <!-- Catatan -->
+    <div>
+      <label for="progress-note" class="block text-sm font-bold">
+        {{ noteRequired ? 'Catatan' : 'Catatan (opsional)' }}
+      </label>
       <textarea
         id="progress-note"
         v-model="note"
-        class="control"
         rows="4"
-        maxlength="2000"
-        :aria-invalid="!!fieldErrors.note"
-        :aria-describedby="fieldErrors.note ? 'progress-note-error' : undefined"
+        placeholder="Tulis perkembangan penanganan di lapangan..."
+        :aria-invalid="Boolean(fieldErrors.note)"
+        class="mt-2 w-full resize-y rounded-2xl border border-sand-dark bg-white px-4 py-3 text-sm placeholder:text-maroon/40 focus:border-maroon aria-invalid:border-red-500"
       ></textarea>
-      <span v-if="fieldErrors.note" id="progress-note-error" class="field__error" role="alert">
-        {{ fieldErrors.note }}
-      </span>
+      <p v-if="fieldErrors.note" class="mt-1 text-xs font-semibold text-red-700" role="alert">{{ fieldErrors.note }}</p>
     </div>
 
-    <div v-for="group in fileGroups" :key="group.key" class="field">
-      <label :for="`progress-file-${group.key}`">{{ group.label }}</label>
-      <small class="progress-form__hint">{{ group.hint }}</small>
-      <input
-        :id="`progress-file-${group.key}`"
-        class="control"
-        type="file"
+    <!-- Foto / berkas -->
+    <div v-for="group in fileGroups" :key="group.key" class="space-y-3">
+      <ProgressFileField
+        :label="group.label"
+        :hint="group.hint"
         :accept="group.accept"
-        :capture="group.capture"
         :multiple="group.multiple"
-        :disabled="totalFiles >= MAX_FILES || submitting"
-        @change="addFiles(group.key, $event)"
+        :capture="group.capture"
+        :items="files[group.key]"
+        :disabled="submitting"
+        @pick="addFiles(group.key, $event)"
+        @remove="removeFile(group.key, $event)"
       />
 
-      <ul v-if="files[group.key].length" class="previews">
-        <li v-for="item in files[group.key]" :key="item.id" class="previews__item">
-          <img v-if="item.previewUrl" :src="item.previewUrl" :alt="item.file.name" />
-          <span v-else class="previews__doc">{{ item.file.name }}</span>
-          <button
-            type="button"
-            class="previews__remove"
-            :aria-label="`Hapus ${item.file.name}`"
-            :disabled="submitting"
-            @click="removeFile(group.key, item.id)"
-          >
-            &times;
-          </button>
-        </li>
-      </ul>
+      <!-- Status radius 100 m untuk foto sesudah -->
+      <div
+        v-if="group.key === 'afterPhotos'"
+        class="flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 text-sm"
+        :class="RADIUS_TONE[radiusState]"
+        role="status"
+        aria-live="polite"
+      >
+        <LoaderCircle v-if="radiusState === 'checking'" class="size-5 shrink-0 animate-spin" aria-hidden="true" />
+        <CircleCheck v-else-if="radiusState === 'ok'" class="size-5 shrink-0" aria-hidden="true" />
+        <TriangleAlert v-else-if="radiusState === 'far' || radiusState === 'error'" class="size-5 shrink-0" aria-hidden="true" />
+        <MapPin v-else class="size-5 shrink-0" aria-hidden="true" />
+
+        <p class="min-w-0 flex-1 font-medium">
+          <template v-if="radiusState === 'checking'">Mencari lokasi Anda...</template>
+          <template v-else-if="radiusState === 'ok'">
+            Anda {{ formatDistance(distance) }} dari titik laporan, masih dalam radius {{ AFTER_PHOTO_RADIUS_M }} m.
+          </template>
+          <template v-else-if="radiusState === 'far'">
+            Anda {{ formatDistance(distance) }} dari titik laporan. Dekati lokasi sampai maksimal {{ AFTER_PHOTO_RADIUS_M }} m.
+          </template>
+          <template v-else-if="radiusState === 'error'">{{ geoError }}</template>
+          <template v-else>Lokasi dicek setelah foto dipilih. Radius yang diizinkan {{ AFTER_PHOTO_RADIUS_M }} m dari titik laporan.</template>
+        </p>
+
+        <button
+          v-if="radiusState !== 'checking'"
+          type="button"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-current px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-70"
+          @click="locate()"
+        >
+          <RefreshCw class="size-3.5" aria-hidden="true" />
+          {{ radiusState === 'idle' ? 'Cek lokasi' : 'Perbarui lokasi' }}
+        </button>
+      </div>
     </div>
 
-    <p v-if="fileError" class="progress-form__error" role="alert">{{ fileError }}</p>
-    <small class="progress-form__hint">
-      {{ totalFiles }} dari {{ MAX_FILES }} file, maksimal {{ MAX_SIZE_MB }} MB per file.
-    </small>
+    <div class="space-y-3">
+      <p class="text-xs text-maroon/60">{{ totalFiles }} dari {{ MAX_FILES }} file, maksimal {{ MAX_SIZE_MB }} MB per file.</p>
+      <p v-if="fileError" class="text-xs font-semibold text-red-700" role="alert">{{ fileError }}</p>
 
-    <div v-if="isFinishing" class="location" :class="{ 'location--ok': withinRadius, 'location--far': distance !== null && !withinRadius }">
-      <p v-if="locating" role="status">Mencari lokasi Anda...</p>
-      <p v-else-if="distance !== null" role="status">
-        Jarak Anda dari titik laporan: <strong>{{ formatDistance(distance) }}</strong>
-        (batas {{ AFTER_PHOTO_RADIUS_M }} m).
-        {{ withinRadius ? 'Anda berada dalam jangkauan.' : 'Dekati lokasi laporan sebelum mengambil foto.' }}
-      </p>
-      <p v-else-if="geoError" role="alert">{{ geoError }}</p>
-      <p v-else>Lokasi akan diambil saat Anda memilih foto sesudah.</p>
-      <button type="button" class="btn" :disabled="locating" @click="locate">Perbarui lokasi</button>
+      <!-- Untuk SELESAIKAN lokasi wajib dan dicek lewat panel radius di atas -->
+      <label v-if="!isFinishing" class="flex cursor-pointer items-center gap-3 text-sm font-semibold">
+        <input v-model="attachLocation" type="checkbox" class="size-4 accent-maroon" />
+        Sertakan lokasi saya
+      </label>
     </div>
-    <label v-else class="progress-form__check">
-      <input v-model="attachLocation" type="checkbox" />
-      Sertakan lokasi saya
-    </label>
-    <span v-if="fieldErrors.latitude" class="field__error" role="alert">{{ fieldErrors.latitude }}</span>
 
-    <p v-if="formError" class="progress-form__error" role="alert">{{ formError }}</p>
+    <p
+      v-if="formError"
+      class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
+      role="alert"
+    >
+      {{ formError }}
+    </p>
 
-    <BaseButton type="submit" :loading="submitting">{{ submitLabel }}</BaseButton>
+    <BaseButton type="submit" :loading="submitting" block>{{ submitLabel }}</BaseButton>
   </form>
 </template>
-
-<style scoped>
-.progress-form {
-  display: grid;
-  gap: 1rem;
-}
-.progress-form__actions {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.progress-form__actions legend {
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-.progress-form__option {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.progress-form__option span,
-.progress-form__single {
-  display: grid;
-  gap: 0.125rem;
-}
-.progress-form__single { margin: 0; }
-.progress-form small,
-.progress-form__hint {
-  color: var(--color-text-muted);
-}
-.progress-form__hint { display: block; margin-bottom: 0.25rem; }
-.progress-form__check {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.progress-form__error {
-  margin: 0;
-  color: var(--color-danger, #b91c1c);
-}
-
-.location {
-  display: grid;
-  gap: 0.5rem;
-  justify-items: start;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-.location p { margin: 0; }
-.location--ok { border-color: var(--color-success, #15803d); }
-.location--far { border-color: var(--color-danger, #b91c1c); }
-
-.previews {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.previews__item { position: relative; }
-.previews__item img {
-  display: block;
-  width: 96px;
-  height: 72px;
-  object-fit: cover;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-.previews__doc {
-  display: block;
-  max-width: 160px;
-  padding: 0.5rem 1.5rem 0.5rem 0.5rem;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.previews__remove {
-  position: absolute;
-  top: -0.5rem;
-  right: -0.5rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  line-height: 1;
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  background: var(--color-bg);
-  cursor: pointer;
-}
-</style>
