@@ -107,8 +107,13 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │       ├── FeedFilterBar.vue
     │   │       ├── LaporanFilter.vue
     │   │       ├── LaporanSayaCard.vue
+    │   │       ├── InstansiLaporanItem.vue
+    │   │       ├── ReportMiniMap.vue
     │   │       ├── ProgressSteps.vue
     │   │       ├── DetailInfoCard.vue
+    │   │       ├── ProgressFileField.vue
+    │   │       ├── ReportMiniMap.vue
+    │   │       ├── PhotoGallery.vue
     │   │       ├── DetailCommentBox.vue
     │   │       ├── ConfirmResolveCard.vue
     │   │       ├── StatusPill.vue
