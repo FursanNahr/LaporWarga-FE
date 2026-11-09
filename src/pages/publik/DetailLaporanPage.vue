@@ -416,7 +416,14 @@ const tileLabel =
 
       <aside class="mt-6 space-y-6 xl:mt-0" aria-label="Informasi dan interaksi">
         <DetailInfoCard :report="report" />
-        <DetailCommentBox :counts="counts" :mine="mine" :blocked-reason="blockedReason" @toggle="toggle" />
+        <DetailCommentBox
+          :report-id="report.id"
+          :counts="counts"
+          :mine="mine"
+          :blocked-reason="blockedReason"
+          @toggle="toggle"
+          @count-change="counts.comments = $event"
+        />        
         <ConfirmResolveCard v-if="canConfirm" :report="report" @changed="fetchReport(report.id)" />
       </aside>
     </div>
