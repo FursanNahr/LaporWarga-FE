@@ -46,6 +46,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── notifikasi.api.js
     │   │   ├── admin.api.js
     │   │   ├── support.api.js
+    │   │   ├── komentar.api.js
     │   │   └── master.api.js
     │   │
     │   ├── assets/
@@ -114,6 +115,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │       ├── ProgressFileField.vue
     │   │       ├── ReportMiniMap.vue
     │   │       ├── PhotoGallery.vue
+    │   │       ├── CommentItem.vue
     │   │       ├── DetailCommentBox.vue
     │   │       ├── ConfirmResolveCard.vue
     │   │       ├── StatusPill.vue
@@ -135,7 +137,8 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   ├── constants/
     │   │   ├── roles.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
     │   │   ├── berandaDummy.js            
-    │   │   ├── feedDummy.js              
+    │   │   ├── feedDummy.js
+    │   │   ├── comment.js                         
     │   │   ├── brand.js             
     │   │   └── status.js             ← status laporan
     │   │

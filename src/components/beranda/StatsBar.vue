@@ -1,15 +1,40 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { ArrowRight, Megaphone, CircleCheck, MapPin } from 'lucide-vue-next'
+import { statsApi } from '@/api/stats.api'
 import { useSafeLink } from '@/composables/useSafeLink'
-import { STATS_DUMMY } from '@/constants/berandaDummy' // TODO: ganti dengan data API stats
+import { formatNumber, formatPercent } from '@/utils/formatStats'
 
 const link = useSafeLink()
 
-const items = [
-  { icon: Megaphone, value: STATS_DUMMY.totalBulanIni.toLocaleString('id-ID'), label: 'Total Laporan Bulan Ini' },
-  { icon: CircleCheck, value: `${STATS_DUMMY.tepatWaktuPersen}%`, label: 'Terselesaikan Tepat Waktu' },
-  { icon: MapPin, value: String(STATS_DUMMY.kecamatanAktif), label: 'Kecamatan Teraktif' },
-]
+// Jika API gagal, strip tetap tampil dengan '-' supaya beranda tidak berlubang.
+const stats = ref(null)
+onMounted(async () => {
+  try {
+    const { data: body } = await statsApi.overview()
+    stats.value = body.data
+  } catch {
+    stats.value = null
+  }
+})
+
+const items = computed(() => [
+  {
+    icon: Megaphone,
+    value: stats.value ? formatNumber(stats.value.totalThisMonth) : '-',
+    label: 'Total Laporan Bulan Ini',
+  },
+  {
+    icon: CircleCheck,
+    value: stats.value ? formatPercent(stats.value.onTimePercent) : '-',
+    label: 'Terselesaikan Tepat Waktu',
+  },
+  {
+    icon: MapPin,
+    value: stats.value?.topDistrict?.name ?? '-',
+    label: 'Kecamatan Teraktif',
+  },
+])
 </script>
 
 <template>
@@ -22,8 +47,8 @@ const items = [
       <ul class="grid flex-1 grid-cols-1 gap-5 sm:grid-cols-3">
         <li v-for="item in items" :key="item.label" class="flex items-center gap-3">
           <component :is="item.icon" class="size-9 shrink-0" stroke-width="1.8" aria-hidden="true" />
-          <div>
-            <p class="text-xl font-extrabold leading-none">{{ item.value }}</p>
+          <div class="min-w-0">
+            <p class="break-words text-xl font-extrabold leading-tight">{{ item.value }}</p>
             <p class="mt-1 text-xs leading-snug text-maroon/80">{{ item.label }}</p>
           </div>
         </li>
