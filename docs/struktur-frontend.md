@@ -44,6 +44,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── laporan.api.js
     │   │   ├── instansi.api.js
     │   │   ├── notifikasi.api.js
+    │   │   ├── stats.api.js
     │   │   ├── admin.api.js
     │   │   ├── support.api.js
     │   │   ├── komentar.api.js
@@ -91,6 +92,11 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   └── VerifyForm.vue
     │   │   ├── notifikasi/    
     │   │   │   └── NotifikasiList.vue
+    │   │   ├── stats/    
+    │   │   │   └── AdminStats.vue
+    │   │   │   ├── InstansiStats.vue
+    │   │   │   ├── StatTile.vue
+    │   │   │   ├── WargaStats.vue
     │   │   ├── beranda/    
     │   │   │   ├── BerandaFeedCard.vue
     │   │   │   ├── CaraPakai.vue
@@ -132,6 +138,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── useFilteredList.js
     │   │   ├── useMasterOptions.js
     │   │   ├── useSafeLink.js
+    │   │   ├── useStatsData.js
     │   │   └── useToast.js
     │   │
     │   ├── constants/
@@ -202,6 +209,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── formatDate.js
     │   │   ├── formatStatus.js
     │   │   ├── geo.js
+    │   │   ├── formatStats.js
     │   │   ├── media.js
     │   │   └── validators.js
     │   │
