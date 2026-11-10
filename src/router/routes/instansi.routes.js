@@ -22,6 +22,6 @@ export default {
       name: 'instansi-notifikasi',
       component: () => import('@/pages/instansi/NotifikasiPage.vue'),
     },
-    // { path: 'profil', name: 'instansi-profil', component: () => import('@/pages/instansi/ProfilPage.vue') },
+    { path: 'profil', name: 'instansi-profil', component: () => import('@/pages/instansi/ProfilPage.vue') },
   ],
 }

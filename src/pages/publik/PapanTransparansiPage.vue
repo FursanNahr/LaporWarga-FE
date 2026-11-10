@@ -7,4 +7,4 @@
 
 <style scoped>
 .page { padding-top: 2rem; padding-bottom: 2rem; }
-</style>
+</style> 

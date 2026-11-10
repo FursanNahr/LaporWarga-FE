@@ -5,6 +5,7 @@ import FeedTerdekat from '@/components/beranda/FeedTerdekat.vue'
 import TransparansiCard from '@/components/beranda/TransparansiCard.vue'
 import CaraPakai from '@/components/beranda/CaraPakai.vue'
 import CtaBanner from '@/components/beranda/CtaBanner.vue'
+import TentangKami from '@/components/beranda/TentangKami.vue'
 </script>
 
 <template>
@@ -19,6 +20,7 @@ import CtaBanner from '@/components/beranda/CtaBanner.vue'
 
     <div class="mx-auto mt-14 w-full max-w-[1120px] space-y-12 px-4">
       <CaraPakai />
+      <TentangKami />
       <CtaBanner />
     </div>
   </div>

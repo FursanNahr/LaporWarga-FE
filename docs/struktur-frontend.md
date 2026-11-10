@@ -34,6 +34,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
 
 *Catatan: Struktur di atas merupakan ringkasan. Rincian subfolder dan file beserta fungsinya dapat dilihat pada struktur lengkap di bawah ini.*
 
+```text
     LaporWarga-FE/
     ├── public/
     │   └── favicon.ico
@@ -52,16 +53,16 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │
     │   ├── assets/
     │   │   ├── images/
-    │   │   |   ├── gedung-banner.svg
-    │   │   |   ├── hero-photo.svg
-    │   │   |   ├── auth-illustration.svg
-    │   │   |   ├── auth-illustration-daftar.svg   
-    │   │   |   └── swirl.svg
+    │   │   │   ├── gedung-banner.svg
+    │   │   │   ├── hero-photo.svg
+    │   │   │   ├── auth-illustration.svg
+    │   │   │   ├── auth-illustration-daftar.svg
+    │   │   │   └── swirl.svg
     │   │   └── styles/
     │   │       ├── main.css          ← pindahan dari style.css
     │   │       ├── admin.css
     │   │       ├── variables.css     ← warna, font, spacing
-    │   │       ├── theme.css     ← warna, font, spacing
+    │   │       ├── theme.css         ← warna, font, spacing
     │   │       └── reset.css
     │   │
     │   ├── components/               ← komponen yang dipakai berulang
@@ -84,20 +85,22 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   ├── AuthCard.vue
     │   │   │   ├── AppSidebar.vue
     │   │   │   └── AppBreadcrumb.vue
-    │   │   ├── admin/  
+    │   │   ├── admin/
     │   │   │   ├── AgencySection.vue
     │   │   │   ├── DuplicatePanel.vue
     │   │   │   ├── SlaTag.vue
     │   │   │   ├── StaffSection.vue
     │   │   │   └── VerifyForm.vue
-    │   │   ├── notifikasi/    
+    │   │   ├── notifikasi/
     │   │   │   └── NotifikasiList.vue
-    │   │   ├── stats/    
-    │   │   │   └── AdminStats.vue
+    │   │   ├── profil/               ← tampilan profil (warga & instansi)
+    │   │   │   └── ProfilInfo.vue    ← avatar, nama, role, info akun (read-only)
+    │   │   ├── stats/
+    │   │   │   ├── AdminStats.vue
     │   │   │   ├── InstansiStats.vue
     │   │   │   ├── StatTile.vue
-    │   │   │   ├── WargaStats.vue
-    │   │   ├── beranda/    
+    │   │   │   └── WargaStats.vue
+    │   │   ├── beranda/
     │   │   │   ├── BerandaFeedCard.vue
     │   │   │   ├── CaraPakai.vue
     │   │   │   ├── CtaBanner.vue
@@ -119,7 +122,6 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │       ├── ProgressSteps.vue
     │   │       ├── DetailInfoCard.vue
     │   │       ├── ProgressFileField.vue
-    │   │       ├── ReportMiniMap.vue
     │   │       ├── PhotoGallery.vue
     │   │       ├── CommentItem.vue
     │   │       ├── DetailCommentBox.vue
@@ -143,10 +145,10 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │
     │   ├── constants/
     │   │   ├── roles.js              ← PUBLIK, WARGA, INSTANSI, ADMIN
-    │   │   ├── berandaDummy.js            
+    │   │   ├── berandaDummy.js
     │   │   ├── feedDummy.js
-    │   │   ├── comment.js                         
-    │   │   ├── brand.js             
+    │   │   ├── comment.js
+    │   │   ├── brand.js
     │   │   └── status.js             ← status laporan
     │   │
     │   ├── layouts/                  ← "pembungkus" halaman
@@ -173,12 +175,12 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   ├── BuatLaporanPage.vue
     │   │   │   ├── LaporanSayaPage.vue
     │   │   │   ├── NotifikasiPage.vue
-    │   │   │   └── ProfilPage.vue
+    │   │   │   └── ProfilPage.vue    ← pakai ProfilInfo
     │   │   ├── instansi/
     │   │   │   ├── DaftarLaporanPage.vue
     │   │   │   ├── KelolaProgressPage.vue
     │   │   │   ├── NotifikasiPage.vue
-    │   │   │   └── ProfilPage.vue
+    │   │   │   └── ProfilPage.vue    ← pakai ProfilInfo + instansi & jabatan
     │   │   ├── admin/
     │   │   │   ├── VerifikasiLaporanPage.vue
     │   │   │   ├── KelolaLaporanPage.vue
@@ -224,3 +226,4 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     ├── package.json
     ├── README.md
     └── vite.config.js
+```
