@@ -1,13 +1,14 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { Building2, FileText, Layers, Pencil, Plus, Power, Search, Users } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin.api'
 import { useToast } from '@/composables/useToast'
+import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseEmptyState from '@/components/common/BaseEmptyState.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseLoading from '@/components/common/BaseLoading.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
-import BaseTable from '@/components/common/BaseTable.vue'
 
 /** AgencySection: daftar instansi, tambah, ubah, dan aktif/nonaktifkan. */
 const toast = useToast()
@@ -37,12 +38,10 @@ const rows = computed(() => {
   return q ? agencies.value.filter((agency) => agency.name.toLowerCase().includes(q)) : agencies.value
 })
 
-const columns = [
-  { key: 'name', label: 'Instansi' },
-  { key: 'staff', label: 'Petugas', align: 'right' },
-  { key: 'subcategories', label: 'Subjenis', align: 'right' },
-  { key: 'reports', label: 'Laporan', align: 'right' },
-  { key: 'isActive', label: 'Status' },
+const statTiles = (agency) => [
+  { icon: Users, label: 'Petugas', value: agency.counts.staff },
+  { icon: Layers, label: 'Subjenis', value: agency.counts.subcategories },
+  { icon: FileText, label: 'Laporan', value: agency.counts.reports },
 ]
 
 // ---- Form tambah / ubah ----
@@ -118,67 +117,140 @@ function askToggle(agency) {
   toggleError.value = ''
   toggleOpen.value = true
 }
+
+const alertClass = 'rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800'
+const ghostBtn =
+  'inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border-2 border-maroon px-4 text-sm font-bold text-maroon transition-colors hover:bg-maroon hover:text-white'
 </script>
 
 <template>
   <div>
-    <div class="filters">
-      <div class="filters__field filters__field--grow">
-        <label for="agency-q">Cari instansi</label>
-        <input id="agency-q" v-model="keyword" class="control" type="search" placeholder="Nama instansi" />
+    <!-- Toolbar -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="w-full sm:max-w-md">
+        <label for="agency-q" class="sr-only">Cari instansi</label>
+        <div class="relative">
+          <Search class="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-maroon" aria-hidden="true" />
+          <input
+            id="agency-q"
+            v-model="keyword"
+            type="search"
+            placeholder="Cari nama instansi"
+            class="h-11 w-full rounded-full border border-sand-dark bg-white/70 pl-11 pr-4 text-sm text-maroon placeholder:text-maroon/50 focus:border-maroon focus:outline-none"
+          />
+        </div>
       </div>
-      <button type="button" class="btn btn-primary" @click="openForm()">Tambah instansi</button>
+      <button
+        type="button"
+        class="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full bg-lime px-5 text-sm font-bold text-maroon-dark transition-colors hover:bg-lime-dark"
+        @click="openForm()"
+      >
+        <Plus class="size-4" aria-hidden="true" /> Tambah instansi
+      </button>
     </div>
 
-    <p v-if="error" class="alert alert--error" role="alert">{{ error }}</p>
-    <BaseLoading v-if="loading && !agencies.length" text="Memuat instansi..." />
-    <BaseEmptyState v-else-if="!rows.length && !error" title="Tidak ada instansi" description="Tambahkan instansi pertama, atau ubah kata kunci pencarian." />
+    <p v-if="error" :class="[alertClass, 'mt-6']" role="alert">{{ error }}</p>
+    <BaseLoading v-if="loading && !agencies.length" class="mt-10" text="Memuat instansi..." />
+    <BaseEmptyState
+      v-else-if="!rows.length && !error"
+      class="mt-10"
+      title="Tidak ada instansi"
+      description="Tambahkan instansi pertama, atau ubah kata kunci pencarian."
+    />
 
-    <BaseTable v-else :columns="columns" :rows="rows" actions-label="Aksi" caption="Daftar instansi">
-      <template #cell-name="{ row }">
-        <strong>{{ row.name }}</strong>
-        <span v-if="row.description" class="clamp muted">{{ row.description }}</span>
-      </template>
-      <template #cell-staff="{ row }">{{ row.counts.staff }}</template>
-      <template #cell-subcategories="{ row }">{{ row.counts.subcategories }}</template>
-      <template #cell-reports="{ row }">{{ row.counts.reports }}</template>
-      <template #cell-isActive="{ value }">
-        <span class="tag" :class="value ? 'tag--ok' : ''">{{ value ? 'Aktif' : 'Nonaktif' }}</span>
-      </template>
-      <template #actions="{ row }">
-        <button type="button" class="btn btn--sm" @click="openForm(row)">Ubah</button>
-        <button type="button" class="btn btn--sm" :class="{ 'btn--danger': row.isActive }" @click="askToggle(row)">
-          {{ row.isActive ? 'Nonaktifkan' : 'Aktifkan' }}
-        </button>
-      </template>
-    </BaseTable>
+    <!-- Kartu instansi -->
+    <ul v-else class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <li v-for="row in rows" :key="row.id">
+        <article
+          class="flex h-full flex-col gap-4 rounded-2xl border p-5 transition-transform hover:-translate-y-0.5"
+          :class="row.isActive ? 'border-sand-dark bg-sand' : 'border-dashed border-maroon/30 bg-sand/50'"
+        >
+          <div class="flex items-start gap-3">
+            <span
+              class="flex size-11 shrink-0 items-center justify-center rounded-full"
+              :class="row.isActive ? 'bg-lime text-maroon-dark' : 'bg-white text-maroon/50'"
+              aria-hidden="true"
+            >
+              <Building2 class="size-5" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <h2 class="break-words text-lg font-extrabold leading-tight text-maroon">{{ row.name }}</h2>
+              <BaseBadge :variant="row.isActive ? 'success' : 'neutral'" class="mt-1.5">
+                {{ row.isActive ? 'Aktif' : 'Nonaktif' }}
+              </BaseBadge>
+            </div>
+          </div>
 
+          <p class="line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-maroon/80">
+            {{ row.description || 'Belum ada deskripsi.' }}
+          </p>
+
+          <dl class="grid grid-cols-3 gap-2">
+            <div v-for="tile in statTiles(row)" :key="tile.label" class="rounded-xl bg-white px-3 py-2.5 text-center">
+              <dt class="flex items-center justify-center gap-1 text-[11px] font-semibold text-maroon/70">
+                <component :is="tile.icon" class="size-3.5" aria-hidden="true" /> {{ tile.label }}
+              </dt>
+              <dd class="mt-0.5 text-xl font-extrabold text-maroon">{{ tile.value }}</dd>
+            </div>
+          </dl>
+
+          <div class="mt-auto flex flex-wrap gap-2 border-t border-maroon/10 pt-4">
+            <button type="button" :class="ghostBtn" @click="openForm(row)">
+              <Pencil class="size-4" aria-hidden="true" /> Ubah
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border-2 px-4 text-sm font-bold transition-colors"
+              :class="
+                row.isActive
+                  ? 'border-red-700 text-red-700 hover:bg-red-700 hover:text-white'
+                  : 'border-maroon bg-lime text-maroon-dark hover:bg-lime-dark'
+              "
+              @click="askToggle(row)"
+            >
+              <Power class="size-4" aria-hidden="true" /> {{ row.isActive ? 'Nonaktifkan' : 'Aktifkan' }}
+            </button>
+          </div>
+        </article>
+      </li>
+    </ul>
+
+    <!-- Modal tambah / ubah -->
     <BaseModal v-model="formOpen" :title="form.id ? 'Ubah instansi' : 'Tambah instansi'">
-      <form class="admin-page admin-modal" novalidate @submit.prevent="save">
-        <p v-if="formError" class="alert alert--error" role="alert">{{ formError }}</p>
+      <form class="space-y-4 text-maroon" novalidate @submit.prevent="save">
+        <p v-if="formError" :class="alertClass" role="alert">{{ formError }}</p>
         <BaseInput v-model="form.name" label="Nama instansi" maxlength="150" :error="fieldErrors.name" />
-        <div class="field">
-          <label for="agency-desc">Deskripsi (opsional)</label>
-          <textarea id="agency-desc" v-model="form.description" class="control" rows="3" maxlength="2000"></textarea>
-          <span v-if="fieldErrors.description" class="field__error" role="alert">{{ fieldErrors.description }}</span>
+        <div>
+          <label for="agency-desc" class="mb-1.5 block text-sm font-semibold">Deskripsi (opsional)</label>
+          <textarea
+            id="agency-desc"
+            v-model="form.description"
+            rows="3"
+            maxlength="2000"
+            class="w-full rounded-2xl border border-maroon/25 bg-white/60 px-5 py-3 text-sm text-maroon placeholder:text-maroon/50 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-lime"
+          ></textarea>
+          <span v-if="fieldErrors.description" class="mt-1.5 block px-2 text-xs font-medium text-red-700" role="alert">
+            {{ fieldErrors.description }}
+          </span>
         </div>
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="formOpen = false">Batal</button>
+        <div class="flex justify-end gap-3 pt-2">
+          <BaseButton variant="secondary" @click="formOpen = false">Batal</BaseButton>
           <BaseButton type="submit" :loading="saving">Simpan</BaseButton>
         </div>
       </form>
     </BaseModal>
 
+    <!-- Modal konfirmasi nonaktifkan -->
     <BaseModal v-model="toggleOpen" title="Nonaktifkan instansi">
-      <div class="admin-page admin-modal">
-        <p v-if="toggleError" class="alert alert--error" role="alert">{{ toggleError }}</p>
-        <p v-if="toggleTarget">
+      <div class="space-y-4 text-maroon">
+        <p v-if="toggleError" :class="alertClass" role="alert">{{ toggleError }}</p>
+        <p v-if="toggleTarget" class="leading-relaxed">
           Nonaktifkan <strong>{{ toggleTarget.name }}</strong>? Subjenisnya tidak akan muncul di form laporan warga.
           Laporan yang sedang berjalan tetap bisa ditangani.
         </p>
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="toggleOpen = false">Batal</button>
-          <BaseButton type="button" :loading="toggling" @click="setActive(toggleTarget, false)">Nonaktifkan</BaseButton>
+        <div class="flex justify-end gap-3 pt-2">
+          <BaseButton variant="secondary" @click="toggleOpen = false">Batal</BaseButton>
+          <BaseButton variant="danger" :loading="toggling" @click="setActive(toggleTarget, false)">Nonaktifkan</BaseButton>
         </div>
       </div>
     </BaseModal>
