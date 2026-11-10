@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { ChevronDown } from 'lucide-vue-next'
 import { adminApi } from '@/api/admin.api'
 import { REPORT_STATUS } from '@/constants/status'
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -89,52 +90,71 @@ async function submit() {
     submitting.value = false
   }
 }
+
+// Gaya (Tailwind, token moodboard)
+const labelClass = 'mb-1.5 block text-sm font-semibold text-maroon'
+const controlClass =
+  'w-full rounded-2xl border border-sand-dark bg-cream px-4 py-2.5 text-sm text-maroon placeholder:text-maroon/50 focus:border-maroon focus:outline-none focus:ring-2 focus:ring-lime aria-[invalid=true]:border-red-500'
 </script>
 
 <template>
-  <form novalidate @submit.prevent="submit">
-    <p v-if="formError" class="alert alert--error" role="alert">{{ formError }}</p>
+  <form novalidate class="grid gap-5" @submit.prevent="submit">
+    <p v-if="formError" class="rounded-2xl bg-red-100 px-4 py-3 text-sm text-red-800" role="alert">{{ formError }}</p>
 
-    <fieldset>
-      <legend>Keputusan</legend>
-      <label v-for="key in available" :key="key" class="radio">
-        <input v-model="action" type="radio" name="verify-action" :value="key" />
-        <span>
-          <strong>{{ ACTIONS[key].label }}</strong>
-          <small class="hint">{{ ACTIONS[key].hint }}</small>
+    <fieldset class="m-0 grid gap-2.5 border-0 p-0">
+      <legend :class="labelClass">Keputusan</legend>
+      <label
+        v-for="key in available"
+        :key="key"
+        class="flex cursor-pointer items-start gap-3 rounded-2xl border border-sand-dark bg-cream px-4 py-3 transition-colors hover:bg-sand has-[:checked]:border-maroon has-[:checked]:bg-lime/20 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-maroon"
+      >
+        <input v-model="action" type="radio" name="verify-action" :value="key" class="mt-1 h-4 w-4 accent-maroon" />
+        <span class="grid gap-0.5">
+          <strong class="text-sm font-extrabold text-maroon">{{ ACTIONS[key].label }}</strong>
+          <small class="text-sm text-maroon/70">{{ ACTIONS[key].hint }}</small>
         </span>
       </label>
     </fieldset>
 
-    <div v-if="action === 'TERUSKAN'" class="field">
-      <label for="verify-agency">Instansi tujuan</label>
-      <select id="verify-agency" v-model="agencyId" class="control" :aria-invalid="!!fieldErrors.agencyId">
-        <option value="" disabled>Pilih instansi</option>
-        <option v-for="agency in activeAgencies" :key="agency.id" :value="agency.id">{{ agency.name }}</option>
-      </select>
-      <span v-if="fieldErrors.agencyId" class="field__error" role="alert">{{ fieldErrors.agencyId }}</span>
-      <small class="hint">Sudah terisi sesuai jenis laporan. Ganti jika instansinya kurang tepat.</small>
+    <div v-if="action === 'TERUSKAN'">
+      <label for="verify-agency" :class="labelClass">Instansi tujuan</label>
+      <div class="relative">
+        <select
+          id="verify-agency"
+          v-model="agencyId"
+          :class="[controlClass, 'appearance-none rounded-full pr-10']"
+          :aria-invalid="!!fieldErrors.agencyId"
+        >
+          <option value="" disabled>Pilih instansi</option>
+          <option v-for="agency in activeAgencies" :key="agency.id" :value="agency.id">{{ agency.name }}</option>
+        </select>
+        <ChevronDown class="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-maroon/60" aria-hidden="true" />
+      </div>
+      <span v-if="fieldErrors.agencyId" class="mt-1 block text-sm text-red-700" role="alert">{{ fieldErrors.agencyId }}</span>
+      <small class="mt-1 block text-sm text-maroon/70">Sudah terisi sesuai jenis laporan. Ganti jika instansinya kurang tepat.</small>
     </div>
 
-    <div v-if="action === 'TOLAK'" class="field">
-      <label for="verify-reason">Alasan penolakan</label>
+    <div v-if="action === 'TOLAK'">
+      <label for="verify-reason" :class="labelClass">Alasan penolakan</label>
       <textarea
         id="verify-reason"
         v-model="reason"
-        class="control"
+        :class="controlClass"
         rows="3"
         maxlength="1000"
         :aria-invalid="!!fieldErrors.reason"
       ></textarea>
-      <span v-if="fieldErrors.reason" class="field__error" role="alert">{{ fieldErrors.reason }}</span>
+      <span v-if="fieldErrors.reason" class="mt-1 block text-sm text-red-700" role="alert">{{ fieldErrors.reason }}</span>
     </div>
 
-    <div v-else class="field">
-      <label for="verify-note">Catatan (opsional)</label>
-      <textarea id="verify-note" v-model="note" class="control" rows="2" maxlength="2000"></textarea>
-      <small class="hint">Masuk ke riwayat progres laporan.</small>
+    <div v-else>
+      <label for="verify-note" :class="labelClass">Catatan (opsional)</label>
+      <textarea id="verify-note" v-model="note" :class="controlClass" rows="2" maxlength="2000"></textarea>
+      <small class="mt-1 block text-sm text-maroon/70">Masuk ke riwayat progres laporan.</small>
     </div>
 
-    <BaseButton type="submit" :loading="submitting">{{ ACTIONS[action].label }}</BaseButton>
+    <BaseButton type="submit" class="justify-self-start" :variant="action === 'TOLAK' ? 'danger' : 'primary'" :loading="submitting">
+      {{ ACTIONS[action].label }}
+    </BaseButton>
   </form>
 </template>
