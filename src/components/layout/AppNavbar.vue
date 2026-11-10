@@ -73,6 +73,11 @@ onBeforeUnmount(stopPolling)
 
 // ---- Pencarian: kirim ke halaman Cari Laporan lewat query ?q= ----
 const keyword = ref('')
+watch(
+  () => route.query.q,
+  (q) => { keyword.value = typeof q === 'string' ? q : '' },
+  { immediate: true },
+)
 const submitSearch = () => {
   const q = keyword.value.trim()
   router.push({ ...link('cari-laporan'), query: q ? { q } : {} })

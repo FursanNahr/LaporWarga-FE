@@ -72,50 +72,89 @@ async function merge() {
 </script>
 
 <template>
-  <div>
-    <p class="hint">
-      Cari laporan sejenis dalam radius 200 m. Laporan ini akan digabung ke laporan utama yang kamu pilih.
+  <div class="grid gap-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <p class="max-w-prose text-sm text-maroon/70">
+        Cari laporan sejenis dalam radius 200 m. Laporan ini akan digabung ke laporan utama yang kamu pilih.
+      </p>
+      <BaseButton variant="secondary" :loading="searching" @click="search">
+        {{ searching ? 'Mencari...' : candidates ? 'Cari ulang' : 'Cari kandidat duplikat' }}
+      </BaseButton>
+    </div>
+
+    <p v-if="searchError" class="rounded-2xl bg-red-100 px-4 py-3 text-sm text-red-800" role="alert">{{ searchError }}</p>
+    <p
+      v-if="candidates && !candidates.length"
+      class="rounded-2xl border border-dashed border-sand-dark bg-cream px-4 py-4 text-center text-sm text-maroon/70"
+    >
+      Tidak ada kandidat duplikat di sekitar lokasi ini.
     </p>
-    <button type="button" class="btn" :aria-busy="searching" @click="search">
-      {{ searching ? 'Mencari...' : candidates ? 'Cari ulang' : 'Cari kandidat duplikat' }}
-    </button>
 
-    <p v-if="searchError" class="alert alert--error" role="alert">{{ searchError }}</p>
-    <p v-if="candidates && !candidates.length" class="muted">Tidak ada kandidat duplikat di sekitar lokasi ini.</p>
-
-    <ul v-if="candidates?.length" class="candidates">
-      <li v-for="candidate in candidates" :key="candidate.id" class="candidate">
-        <img v-if="candidate.photos?.[0]" :src="assetUrl(candidate.photos[0].url)" :alt="`Foto ${candidate.trackingCode}`" loading="lazy" />
-        <div class="candidate__body">
-          <p class="candidate__top">
-            <RouterLink :to="{ name: 'admin-detail-laporan', params: { id: candidate.id } }" class="link" target="_blank">
+    <ul v-if="candidates?.length" class="grid gap-3">
+      <li
+        v-for="candidate in candidates"
+        :key="candidate.id"
+        class="flex flex-wrap items-center gap-4 rounded-2xl border border-sand-dark bg-cream p-3"
+      >
+        <img
+          v-if="candidate.photos?.[0]"
+          :src="assetUrl(candidate.photos[0].url)"
+          :alt="`Foto ${candidate.trackingCode}`"
+          loading="lazy"
+          class="h-20 w-28 shrink-0 rounded-xl border border-sand-dark object-cover"
+        />
+        <div class="min-w-48 flex-1">
+          <p class="flex flex-wrap items-center gap-2">
+            <RouterLink
+              :to="{ name: 'admin-detail-laporan', params: { id: candidate.id } }"
+              class="font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
+              target="_blank"
+            >
               {{ candidate.trackingCode }}
             </RouterLink>
             <StatusBadge :status="candidate.status" />
           </p>
-          <p class="clamp">{{ candidate.description }}</p>
-          <p class="hint">
+          <p class="mt-1 line-clamp-2 text-sm text-maroon">{{ candidate.description }}</p>
+          <p class="mt-1 text-xs text-maroon/60">
             {{ formatDistance(candidate.distanceMeters) }} dari laporan ini, {{ formatDate(candidate.createdAt) }},
             {{ candidate.supportCount }} dukungan
           </p>
         </div>
-        <button type="button" class="btn btn--sm" @click="choose(candidate)">Jadikan laporan utama</button>
+        <button
+          type="button"
+          class="rounded-full border border-sand-dark bg-white px-4 py-1.5 text-sm font-semibold text-maroon hover:bg-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+          @click="choose(candidate)"
+        >
+          Jadikan laporan utama
+        </button>
       </li>
     </ul>
 
     <BaseModal v-model="open" title="Gabungkan laporan duplikat">
-      <div class="admin-page admin-modal">
-        <p v-if="mergeError" class="alert alert--error" role="alert">{{ mergeError }}</p>
-        <p v-if="target">
+      <div class="grid gap-4 text-maroon">
+        <p v-if="mergeError" class="rounded-2xl bg-red-100 px-4 py-3 text-sm text-red-800" role="alert">{{ mergeError }}</p>
+        <p v-if="target" class="text-sm leading-relaxed">
           Laporan ini akan digabung ke <strong>{{ target.trackingCode }}</strong>. Dukungan, pengikut, dan komentarnya
           dipindahkan, lalu semua pengikut diberi tahu. Penggabungan tidak bisa dibatalkan.
         </p>
-        <div class="field">
-          <label for="merge-note">Catatan (opsional)</label>
-          <textarea id="merge-note" v-model="note" class="control" rows="2" maxlength="500"></textarea>
+        <div>
+          <label for="merge-note" class="mb-1.5 block text-sm font-semibold">Catatan (opsional)</label>
+          <textarea
+            id="merge-note"
+            v-model="note"
+            rows="2"
+            maxlength="500"
+            class="w-full rounded-2xl border border-sand-dark bg-cream px-4 py-2.5 text-sm text-maroon focus:border-maroon focus:outline-none focus:ring-2 focus:ring-lime"
+          ></textarea>
         </div>
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="open = false">Batal</button>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-full border border-sand-dark bg-white px-5 py-2 text-sm font-semibold text-maroon hover:bg-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+            @click="open = false"
+          >
+            Batal
+          </button>
           <BaseButton type="button" :loading="merging" @click="merge">Gabungkan</BaseButton>
         </div>
       </div>
