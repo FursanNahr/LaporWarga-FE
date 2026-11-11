@@ -1,16 +1,15 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { AlarmClock, ArrowRight, Bell, CheckCheck, ClipboardList, Flag, MessageCircle } from 'lucide-vue-next'
 import { notifikasiApi } from '@/api/notifikasi.api'
 import { usePagination } from '@/composables/usePagination'
 import { useToast } from '@/composables/useToast'
 import { useNotifikasiStore } from '@/stores/notifikasi.store'
-import { formatDateTime } from '@/utils/formatDate'
-import BaseBadge from '@/components/common/BaseBadge.vue'
+import { formatDate, formatDateTime, timeAgo } from '@/utils/formatDate'
 import BaseEmptyState from '@/components/common/BaseEmptyState.vue'
 import BaseLoading from '@/components/common/BaseLoading.vue'
 import BasePagination from '@/components/common/BasePagination.vue'
-import BaseButton from '@/components/common/BaseButton.vue'
 
 /**
  * NotifikasiList: daftar notifikasi milik user yang login (semua role memakai endpoint yang sama).
@@ -70,21 +69,91 @@ async function markAllRead() {
     toast.error(e.normalized?.message ?? 'Gagal menandai semua notifikasi.')
   }
 }
+
+// ---- Tampilan ----
+const TYPE_ICON = {
+  STATUS_UPDATE: ClipboardList,
+  KOMENTAR: MessageCircle,
+  SANGGAHAN: Flag,
+  SLA_TERLEWAT: AlarmClock,
+}
+const iconOf = (item) => TYPE_ICON[item.type] ?? Bell
+
+const iconTone = (item) => {
+  if (item.type === 'SLA_TERLEWAT') return item.isRead ? 'bg-red-100 text-red-700' : 'bg-red-600 text-white'
+  return item.isRead ? 'bg-white text-maroon/60' : 'bg-lime text-maroon-dark'
+}
+
+const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+const dayLabel = (value) => {
+  const diff = Math.round((startOfDay(new Date()) - startOfDay(new Date(value))) / 86400000)
+  if (diff <= 0) return 'Hari ini'
+  if (diff === 1) return 'Kemarin'
+  return formatDate(value)
+}
+
+// Kelompok per hari; urutan mengikuti data dari server (terbaru dulu).
+const groups = computed(() => {
+  const map = new Map()
+  for (const item of items.value) {
+    const label = dayLabel(item.createdAt)
+    if (!map.has(label)) map.set(label, [])
+    map.get(label).push(item)
+  }
+  return [...map].map(([label, list]) => ({ label, list }))
+})
+
+const pill = (active) =>
+  active ? 'bg-maroon text-white' : 'bg-sand text-maroon hover:bg-sand-dark/60'
 </script>
 
 <template>
-  <div class="notif">
-    <div class="notif__toolbar">
-      <label class="notif__check">
-        <input v-model="unreadOnly" type="checkbox" />
-        Hanya yang belum dibaca
-      </label>
-      <BaseButton v-if="store.unreadCount > 0" variant="secondary" @click="markAllRead">
-        Tandai semua sudah dibaca
-      </BaseButton>
+  <div class="space-y-6">
+    <!-- Toolbar -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div role="group" aria-label="Filter notifikasi" class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="h-11 cursor-pointer rounded-full px-5 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+          :class="pill(!unreadOnly)"
+          :aria-pressed="!unreadOnly"
+          @click="unreadOnly = false"
+        >
+          Semua
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full px-5 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+          :class="pill(unreadOnly)"
+          :aria-pressed="unreadOnly"
+          @click="unreadOnly = true"
+        >
+          Belum dibaca
+          <span
+            v-if="store.unreadCount > 0"
+            class="rounded-full px-2 py-0.5 text-xs font-extrabold"
+            :class="unreadOnly ? 'bg-lime text-maroon-dark' : 'bg-maroon text-white'"
+          >{{ store.unreadCount }}</span>
+        </button>
+      </div>
+
+      <button
+        v-if="store.unreadCount > 0"
+        type="button"
+        class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border-2 border-maroon px-5 text-sm font-bold text-maroon transition-colors hover:bg-maroon hover:text-white"
+        @click="markAllRead"
+      >
+        <CheckCheck class="size-4" aria-hidden="true" /> Tandai semua sudah dibaca
+      </button>
     </div>
 
-    <p v-if="error" class="notif__error" role="alert">{{ error }}</p>
+    <p
+      v-if="error"
+      class="rounded-2xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-semibold text-red-800"
+      role="alert"
+    >
+      {{ error }}
+    </p>
 
     <BaseLoading v-if="loading" text="Memuat notifikasi..." />
 
@@ -94,63 +163,46 @@ async function markAllRead() {
       description="Pembaruan pada laporan yang Anda ikuti akan muncul di sini."
     />
 
-    <ul v-else class="notif__list">
-      <li v-for="item in items" :key="item.id">
-        <button
-          type="button"
-          class="notif__item"
-          :class="{ 'notif__item--unread': !item.isRead }"
-          @click="open(item)"
-        >
-          <span class="notif__head">
-            <strong>{{ item.title }}</strong>
-            <BaseBadge v-if="!item.isRead" variant="primary">Baru</BaseBadge>
-          </span>
-          <span class="notif__message">{{ item.message }}</span>
-          <span class="notif__meta">
-            <template v-if="item.report">{{ item.report.trackingCode }}, </template>{{ formatDateTime(item.createdAt) }}
-          </span>
-        </button>
-      </li>
-    </ul>
+    <!-- Daftar per hari -->
+    <div v-else class="space-y-7">
+      <section v-for="group in groups" :key="group.label" :aria-label="group.label">
+        <h2 class="mb-3 pl-1 text-xs font-bold uppercase tracking-widest text-maroon/70">{{ group.label }}</h2>
+        <ul class="space-y-3">
+          <li v-for="item in group.list" :key="item.id">
+            <button
+              type="button"
+              class="group flex w-full cursor-pointer items-start gap-4 rounded-2xl border p-4 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-maroon"
+              :class="item.isRead ? 'border-sand-dark bg-sand' : 'border-lime-dark/50 bg-lime/20'"
+              @click="open(item)"
+            >
+              <span class="flex size-11 shrink-0 items-center justify-center rounded-full" :class="iconTone(item)" aria-hidden="true">
+                <component :is="iconOf(item)" class="size-5" />
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-2">
+                  <strong class="break-words leading-tight text-maroon" :class="item.isRead ? 'font-bold' : 'font-extrabold'">{{ item.title }}</strong>
+                  <span v-if="!item.isRead" class="size-2.5 shrink-0 rounded-full bg-maroon" aria-hidden="true"></span>
+                  <span v-if="!item.isRead" class="sr-only">Belum dibaca</span>
+                </span>
+                <span class="mt-1 block text-sm leading-relaxed" :class="item.isRead ? 'text-maroon/70' : 'text-maroon/90'">{{ item.message }}</span>
+                <span class="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-semibold text-maroon/70">
+                  <span v-if="item.report" class="rounded-lg bg-white px-2.5 py-1 font-extrabold tracking-wide text-maroon">{{ item.report.trackingCode }}</span>
+                  <time :datetime="item.createdAt" :title="formatDateTime(item.createdAt)">{{ timeAgo(item.createdAt) }}</time>
+                </span>
+              </span>
+
+              <ArrowRight
+                v-if="item.report"
+                class="mt-3 size-5 shrink-0 text-maroon/40 transition-transform group-hover:translate-x-1 group-hover:text-maroon"
+                aria-hidden="true"
+              />
+            </button>
+          </li>
+        </ul>
+      </section>
+    </div>
 
     <BasePagination :has-more="hasMore" :loading="loadingMore" @load-more="loadMore" />
   </div>
 </template>
-
-<style scoped>
-.notif { display: grid; gap: 1rem; }
-.notif__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-.notif__check { display: flex; align-items: center; gap: 0.5rem; }
-.notif__error { margin: 0; color: var(--color-danger, #b91c1c); }
-.notif__list {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.notif__item {
-  display: grid;
-  gap: 0.25rem;
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.notif__item--unread { border-left: 4px solid var(--color-primary); }
-.notif__item:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-.notif__head { display: flex; align-items: center; gap: 0.5rem; }
-.notif__meta { font-size: 0.875rem; color: var(--color-text-muted); }
-</style>
