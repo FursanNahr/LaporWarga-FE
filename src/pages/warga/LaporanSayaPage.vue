@@ -54,6 +54,7 @@ const PROCESS_STATUSES = [
 const TABS = [
   { key: 'semua', label: 'Semua Laporan', icon: FileText, match: () => true },
   { key: 'diproses', label: 'Diproses', icon: Clock, match: (s) => PROCESS_STATUSES.includes(s) },
+  { key: 'konfirmasi', label: 'Perlu konfirmasi', icon: Clock, match: (s) => s === REPORT_STATUS.MENUNGGU_KONFIRMASI || s === REPORT_STATUS.DISANGGAH },
   { key: 'selesai', label: 'Selesai', icon: CircleCheck, match: (s) => s === REPORT_STATUS.SELESAI },
   { key: 'ditolak', label: 'Ditolak', icon: CircleX, match: (s) => s === REPORT_STATUS.DITOLAK },
 ]

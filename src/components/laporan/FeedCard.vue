@@ -11,6 +11,7 @@ import {
   Info,
   MapPin,
   MessageCircle,
+  TriangleAlert,
   ThumbsUp,
 } from 'lucide-vue-next'
 import { assetUrl } from '@/api'
@@ -46,6 +47,8 @@ const STATUS_UI = {
   [REPORT_STATUS.DITERUSKAN]: { icon: Info, tone: 'bg-blue-100 text-blue-800', label: 'Diteruskan ke Instansi' },
   [REPORT_STATUS.DALAM_PENANGANAN]: { icon: Clock, tone: 'bg-amber-100 text-amber-800' },
   [REPORT_STATUS.SELESAI]: { icon: CircleCheck, tone: 'bg-lime/60 text-emerald-900' },
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: { icon: Clock, tone: 'bg-orange-100 text-orange-900' },
+  [REPORT_STATUS.DISANGGAH]: { icon: TriangleAlert, tone: 'bg-rose-100 text-rose-800' },
 }
 const statusUi = computed(() => STATUS_UI[props.report.status] ?? { icon: Info, tone: 'bg-sand text-maroon' })
 const statusLabel = computed(

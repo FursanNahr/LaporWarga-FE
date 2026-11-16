@@ -20,6 +20,7 @@ import {
   Send,
   ShieldCheck,
   Timer,
+  TriangleAlert,
   User,
   Wrench,
   X,
@@ -35,6 +36,8 @@ import BaseLoading from '@/components/common/BaseLoading.vue'
 import DuplicatePanel from '@/components/admin/DuplicatePanel.vue'
 import SlaTag from '@/components/admin/SlaTag.vue'
 import VerifyForm from '@/components/admin/VerifyForm.vue'
+import DisputeDecisionForm from '@/components/admin/DisputeDecisionForm.vue'
+import ConfirmationHistory from '@/components/laporan/ConfirmationHistory.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -77,6 +80,9 @@ const canVerify = computed(
     [REPORT_STATUS.MENUNGGU_VERIFIKASI, REPORT_STATUS.TERVERIFIKASI].includes(report.value.status),
 )
 const canMerge = computed(() => !mergedInto.value)
+const canDecide = computed(
+  () => !mergedInto.value && report.value?.status === REPORT_STATUS.DISANGGAH,
+)
 
 const category = computed(() => {
   const sub = report.value?.subcategory
@@ -99,6 +105,12 @@ async function handleVerified(action) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+async function handleDecided(decision) {
+  toast.success(decision === 'REOPEN' ? 'Laporan dibuka kembali.' : 'Laporan ditutup.')
+  await fetchReport({ silent: true })
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function handleMerged(target) {
   toast.success('Laporan berhasil digabung.')
   router.push({ name: 'admin-detail-laporan', params: { id: target.id } })
@@ -111,6 +123,8 @@ const SUBTITLE = {
   [REPORT_STATUS.DITOLAK]: 'Laporan ditolak oleh admin.',
   [REPORT_STATUS.DITERUSKAN]: 'Laporan sudah diteruskan dan menunggu ditangani instansi.',
   [REPORT_STATUS.DALAM_PENANGANAN]: 'Laporan sedang ditangani oleh instansi.',
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: 'Instansi menandai laporan selesai. Menunggu konfirmasi pelapor.',
+  [REPORT_STATUS.DISANGGAH]: 'Pelapor menyanggah hasil penanganan. Menunggu keputusan admin.',
   [REPORT_STATUS.SELESAI]: 'Laporan sudah selesai ditangani.',
 }
 const subtitle = computed(() => SUBTITLE[report.value?.status] ?? '')
@@ -122,6 +136,8 @@ const PILL = {
   [REPORT_STATUS.DITOLAK]: { tone: 'bg-red-200 text-red-900', icon: CircleX },
   [REPORT_STATUS.DITERUSKAN]: { tone: 'bg-violet-200 text-violet-900', icon: Send },
   [REPORT_STATUS.DALAM_PENANGANAN]: { tone: 'bg-blue-200 text-blue-900', icon: Wrench },
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: { tone: 'bg-orange-200 text-orange-900', icon: Clock },
+  [REPORT_STATUS.DISANGGAH]: { tone: 'bg-red-200 text-red-900', icon: TriangleAlert },
   [REPORT_STATUS.SELESAI]: { tone: 'bg-lime text-maroon', icon: CircleCheck },
 }
 const pill = computed(() => PILL[report.value?.status] ?? { tone: 'bg-sand-dark text-maroon', icon: Clock })
@@ -134,6 +150,8 @@ const STEP_TITLE = {
   [REPORT_STATUS.DITOLAK]: 'Laporan ditolak',
   [REPORT_STATUS.DITERUSKAN]: 'Diteruskan ke instansi',
   [REPORT_STATUS.DALAM_PENANGANAN]: 'Ditindaklanjuti',
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: 'Menunggu konfirmasi pelapor',
+  [REPORT_STATUS.DISANGGAH]: 'Disanggah pelapor',
   [REPORT_STATUS.SELESAI]: 'Selesai',
 }
 const steps = computed(() =>
@@ -146,7 +164,7 @@ const steps = computed(() =>
     at: item.createdAt,
     by: item.actor?.name ?? 'Sistem',
     note: item.note,
-    rejected: item.toStatus === REPORT_STATUS.DITOLAK,
+    rejected: [REPORT_STATUS.DITOLAK, REPORT_STATUS.DISANGGAH].includes(item.toStatus),
     current: index === list.length - 1,
   })),
 )
@@ -374,6 +392,20 @@ const valueClass = 'mt-0.5 text-sm font-semibold text-maroon'
                 </li>
               </ul>
             </div>
+          </section>
+
+          <ConfirmationHistory :report-id="report.id" :reload-key="report.updatedAt" />
+
+          <section v-if="canDecide" :class="cardClass" aria-labelledby="sec-dispute">
+            <div class="mb-4 flex items-center gap-3">
+              <span :class="iconClass"><TriangleAlert class="h-5 w-5" aria-hidden="true" /></span>
+              <h2 id="sec-dispute" :class="cardTitleClass">Keputusan sanggahan</h2>
+            </div>
+            <DisputeDecisionForm
+              :report-id="report.id"
+              :tracking-code="report.trackingCode"
+              @resolved="handleDecided"
+            />
           </section>
 
           <section v-if="canVerify" :class="cardClass" aria-labelledby="sec-verify">

@@ -28,6 +28,7 @@ import ProgressTimeline from '@/components/laporan/ProgressTimeline.vue'
 import ProgressUpdateForm from '@/components/laporan/ProgressUpdateForm.vue'
 import ReportMiniMap from '@/components/laporan/ReportMiniMap.vue'
 import StatusPill from '@/components/laporan/StatusPill.vue'
+import ConfirmationHistory from '@/components/laporan/ConfirmationHistory.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -85,6 +86,9 @@ const canUpdate = computed(
   () => Boolean(report.value) && !isOtherAgency.value && actionsForStatus(report.value.status).length > 0,
 )
 const isFinished = computed(() => report.value?.status === REPORT_STATUS.SELESAI)
+const isWaitingConfirmation = computed(
+  () => report.value?.status === REPORT_STATUS.MENUNGGU_KONFIRMASI,
+)
 
 // Data laporan tidak punya field judul: subkategori dipakai sebagai judul.
 const title = computed(() => report.value?.subcategory?.name ?? report.value?.trackingCode ?? '')
@@ -317,6 +321,9 @@ async function handleUpdated() {
             <StatusPill :status="report.status" class="sm:ml-auto" />
           </section>
 
+          <!-- Sanggahan pelapor (alasan + foto bukti) -->
+          <ConfirmationHistory :report-id="report.id" :reload-key="report.updatedAt" />
+
           <!-- Perbarui progres -->
           <section v-if="canUpdate" class="rounded-3xl border border-sand-dark bg-white/60 p-5 sm:p-6">
             <h2 class="text-base font-extrabold">Perbarui progres</h2>
@@ -326,6 +333,10 @@ async function handleUpdated() {
           </section>
           <p v-else-if="isOtherAgency" class="rounded-2xl bg-sand px-4 py-3 text-sm">
             Laporan ini ditangani {{ report.agency?.name ?? 'instansi lain' }}. Anda hanya bisa melihatnya.
+          </p>
+          <p v-else-if="isWaitingConfirmation" class="rounded-2xl bg-sand px-4 py-3 text-sm">
+            Laporan menunggu konfirmasi pelapor<template v-if="report.confirmDueAt">
+              (batas {{ formatDateTime(report.confirmDueAt) }})</template>. Tidak ada tindakan yang diperlukan.
           </p>
           <p v-else-if="isFinished" class="rounded-2xl bg-sand px-4 py-3 text-sm">
             Laporan ini sudah selesai, tidak ada tindakan lanjutan.

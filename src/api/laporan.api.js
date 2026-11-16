@@ -16,7 +16,7 @@ export const laporanApi = {
   // Detail + timeline. Laporan yang belum publik hanya bisa dibuka pemilik/admin (selain itu 404).
   detail: (id) => api.get(`/reports/${id}`),
 
-  // formData: field teks + file di field `photos`.
+  // formData: field teaks + file di field `photos`.
   // Content-Type harus multipart: default instance adalah application/json, dan axios 1.x
   // akan mengubah FormData menjadi JSON (file hilang) kalau header itu dibiarkan.
   // Timeout dilonggarkan karena bisa mengunggah sampai 5 foto.

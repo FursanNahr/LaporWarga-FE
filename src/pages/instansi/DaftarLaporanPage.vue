@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { ChevronDown, CircleCheck, Clock, FileText, Search, Send, X } from 'lucide-vue-next'
+import { ChevronDown, CircleCheck, Clock, FileText, Search, Send, X, TriangleAlert } from 'lucide-vue-next'
 import { instansiApi } from '@/api/instansi.api'
 import { masterApi } from '@/api/master.api'
 import { usePagination } from '@/composables/usePagination'
@@ -101,7 +101,7 @@ function resetFilters() {
 
 // ---- Hanya untuk tampilan ----
 // Tab status memakai filters.status yang sama dengan sebelumnya ('' = semua).
-const STATUS_ICONS = { '': FileText, DITERUSKAN: Send, DALAM_PENANGANAN: Clock, SELESAI: CircleCheck }
+const STATUS_ICONS = { '': FileText, DITERUSKAN: Send, DALAM_PENANGANAN: Clock, MENUNGGU_KONFIRMASI: Clock, DISANGGAH: TriangleAlert, SELESAI: CircleCheck }
 const tabs = [
   { value: '', label: 'Semua Laporan' },
   ...AGENCY_STATUSES.map((status) => ({ value: status, label: statusLabel(status) })),

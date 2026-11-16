@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   ImageOff,
   MapPin,
+  TriangleAlert,
   MessageCircle,
   ThumbsUp,
 } from 'lucide-vue-next'
@@ -35,6 +36,8 @@ const STATUS_STYLE = {
   [REPORT_STATUS.DITERUSKAN]: { icon: CornerUpRight, pill: 'bg-amber-100', iconClass: 'text-amber-600' },
   [REPORT_STATUS.DALAM_PENANGANAN]: { icon: Clock, pill: 'bg-sky-100', iconClass: 'text-sky-700' },
   [REPORT_STATUS.SELESAI]: { icon: CircleCheck, pill: 'bg-lime', iconClass: 'text-emerald-700' },
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: { icon: Clock, pill: 'bg-orange-200', iconClass: 'text-orange-700' },
+  [REPORT_STATUS.DISANGGAH]: { icon: TriangleAlert, pill: 'bg-red-200', iconClass: 'text-red-700' },
 }
 const FALLBACK_STYLE = { icon: Clock, pill: 'bg-white', iconClass: 'text-maroon' }
 

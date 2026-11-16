@@ -39,7 +39,10 @@ watch(actions, (list) => {
 })
 
 const isFinishing = computed(() => action.value === PROGRESS_ACTION.SELESAIKAN)
-const noteRequired = computed(() => action.value === PROGRESS_ACTION.TAMBAH_CATATAN)
+// Aksi yang tidak mengubah status wajib bercatatan (cermin NOTE_REQUIRED_ACTIONS di BE).
+const noteRequired = computed(() =>
+  [PROGRESS_ACTION.TAMBAH_CATATAN, PROGRESS_ACTION.JAWAB_SANGGAHAN].includes(action.value),
+)
 const note = ref('')
 
 // ---- Lokasi ----------------------------------------------------------------

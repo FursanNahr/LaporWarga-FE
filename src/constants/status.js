@@ -1,10 +1,13 @@
 // Nilai harus sama persis dengan enum ReportStatus di BE (schema.prisma).
+// Urutannya mengikuti alur laporan.
 export const REPORT_STATUS = {
   MENUNGGU_VERIFIKASI: 'MENUNGGU_VERIFIKASI',
   TERVERIFIKASI: 'TERVERIFIKASI',
   DITOLAK: 'DITOLAK',
   DITERUSKAN: 'DITERUSKAN',
   DALAM_PENANGANAN: 'DALAM_PENANGANAN',
+  MENUNGGU_KONFIRMASI: 'MENUNGGU_KONFIRMASI',
+  DISANGGAH: 'DISANGGAH',
   SELESAI: 'SELESAI',
 }
 
@@ -15,6 +18,8 @@ export const STATUS_META = {
   [REPORT_STATUS.DITOLAK]: { label: 'Ditolak', variant: 'danger' },
   [REPORT_STATUS.DITERUSKAN]: { label: 'Diteruskan', variant: 'info' },
   [REPORT_STATUS.DALAM_PENANGANAN]: { label: 'Dalam Penanganan', variant: 'primary' },
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: { label: 'Menunggu Konfirmasi', variant: 'warning' },
+  [REPORT_STATUS.DISANGGAH]: { label: 'Disanggah', variant: 'danger' },
   [REPORT_STATUS.SELESAI]: { label: 'Selesai', variant: 'success' },
 }
 
@@ -26,6 +31,8 @@ export const PUBLIC_STATUSES = [
   REPORT_STATUS.TERVERIFIKASI,
   REPORT_STATUS.DITERUSKAN,
   REPORT_STATUS.DALAM_PENANGANAN,
+  REPORT_STATUS.MENUNGGU_KONFIRMASI,
+  REPORT_STATUS.DISANGGAH,
   REPORT_STATUS.SELESAI,
 ]
 
@@ -34,6 +41,8 @@ export const PUBLIC_STATUSES = [
 export const AGENCY_STATUSES = [
   REPORT_STATUS.DITERUSKAN,
   REPORT_STATUS.DALAM_PENANGANAN,
+  REPORT_STATUS.MENUNGGU_KONFIRMASI,
+  REPORT_STATUS.DISANGGAH,
   REPORT_STATUS.SELESAI,
 ]
 
@@ -42,6 +51,7 @@ export const PROGRESS_ACTION = {
   MULAI_TANGANI: 'MULAI_TANGANI',
   TAMBAH_CATATAN: 'TAMBAH_CATATAN',
   SELESAIKAN: 'SELESAIKAN',
+  JAWAB_SANGGAHAN: 'JAWAB_SANGGAHAN',
 }
 
 export const PROGRESS_ACTIONS = {
@@ -58,11 +68,18 @@ export const PROGRESS_ACTIONS = {
   [PROGRESS_ACTION.SELESAIKAN]: {
     from: REPORT_STATUS.DALAM_PENANGANAN,
     label: 'Selesaikan laporan',
-    description: 'Wajib foto sesudah yang diambil di lokasi laporan.',
+    description:
+      'Wajib foto sesudah yang diambil di lokasi laporan. Setelah itu pelapor diminta mengonfirmasi hasilnya.',
+  },
+  [PROGRESS_ACTION.JAWAB_SANGGAHAN]: {
+    from: REPORT_STATUS.DISANGGAH,
+    label: 'Jawab sanggahan',
+    description:
+      'Status tetap Disanggah. Jawaban dan bukti Anda masuk ke riwayat, lalu admin memutuskan laporan dibuka kembali atau ditutup.',
   },
 }
 
-/** Aksi yang boleh dilakukan petugas pada sebuah status. SELESAI dan status lain: kosong. */
+/** Aksi yang boleh dilakukan petugas pada sebuah status. Status lain (termasuk SELESAI): kosong. */
 export const actionsForStatus = (status) =>
   Object.entries(PROGRESS_ACTIONS)
     .filter(([, meta]) => meta.from === status)

@@ -24,6 +24,7 @@ import { REPORT_STATUS } from '@/constants/status'
 import { formatDateTime } from '@/utils/formatDate'
 import { formatDistance, formatReporter } from '@/utils/formatStatus'
 import BaseModal from '@/components/common/BaseModal.vue'
+import ConfirmationHistory from '@/components/laporan/ConfirmationHistory.vue'
 import ConfirmResolveCard from '@/components/laporan/ConfirmResolveCard.vue'
 import DetailCommentBox from '@/components/laporan/DetailCommentBox.vue'
 import DetailInfoCard from '@/components/laporan/DetailInfoCard.vue'
@@ -46,11 +47,13 @@ const loading = ref(true)
 const error = ref('')
 const notFound = ref(false)
 
-async function fetchReport(id) {
-  loading.value = true
+async function fetchReport(id, { silent = false } = {}) {
+  if (!silent) {
+    loading.value = true
+    report.value = null
+  }
   error.value = ''
   notFound.value = false
-  report.value = null
 
   try {
     const { data: body } = await laporanApi.detail(id)
@@ -60,7 +63,7 @@ async function fetchReport(id) {
     if (e.normalized?.status === 404) notFound.value = true
     else error.value = e.normalized?.message ?? 'Gagal memuat laporan'
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -180,10 +183,13 @@ async function toggle(kind) {
   }
 }
 
-// ---- Konfirmasi hanya untuk pelapor, saat laporan Selesai -----------------------------
+// ---- Konfirmasi hanya untuk pelapor, saat laporan Menunggu Konfirmasi -----------------
 
 const canConfirm = computed(
-  () => isLoggedIn.value && report.value?.viewer?.isOwner === true && report.value?.status === REPORT_STATUS.SELESAI,
+  () =>
+    isLoggedIn.value &&
+    report.value?.viewer?.isOwner === true &&
+    report.value?.status === REPORT_STATUS.MENUNGGU_KONFIRMASI,
 )
 
 // ---- Simpan & menu "⋯" ------------------------------------------------------------
@@ -412,9 +418,12 @@ const tileLabel =
             <ProgressTimeline :items="report.timeline" newest-first friendly />
           </div>
         </section>
+
+        <ConfirmationHistory :report-id="report.id" :reload-key="report.updatedAt" />
       </div>
 
       <aside class="mt-6 space-y-6 xl:mt-0" aria-label="Informasi dan interaksi">
+        <ConfirmResolveCard v-if="canConfirm" :report="report" @changed="fetchReport(report.id, { silent: true })" />
         <DetailInfoCard :report="report" />
         <DetailCommentBox
           :report-id="report.id"
@@ -424,7 +433,6 @@ const tileLabel =
           @toggle="toggle"
           @count-change="counts.comments = $event"
         />        
-        <ConfirmResolveCard v-if="canConfirm" :report="report" @changed="fetchReport(report.id)" />
       </aside>
     </div>
 

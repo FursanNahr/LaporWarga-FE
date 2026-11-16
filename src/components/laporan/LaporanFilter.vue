@@ -8,6 +8,7 @@ import {
   CornerUpRight,
   LayoutGrid,
   SlidersHorizontal,
+  TriangleAlert,
 } from 'lucide-vue-next'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { PUBLIC_STATUSES, REPORT_STATUS } from '@/constants/status'
@@ -45,6 +46,8 @@ const STATUS_ICON = {
   [REPORT_STATUS.DITERUSKAN]: CornerUpRight,
   [REPORT_STATUS.DALAM_PENANGANAN]: Clock,
   [REPORT_STATUS.SELESAI]: Check,
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: Clock,
+  [REPORT_STATUS.DISANGGAH]: TriangleAlert,
 }
 const STATUS_CHIPS = [
   { value: '', label: 'Semua Laporan', icon: LayoutGrid },

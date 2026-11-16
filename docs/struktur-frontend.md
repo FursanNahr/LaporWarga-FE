@@ -45,6 +45,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   ├── laporan.api.js
     │   │   ├── instansi.api.js
     │   │   ├── notifikasi.api.js
+    │   │   ├── confirmation.api.js
     │   │   ├── stats.api.js
     │   │   ├── admin.api.js
     │   │   ├── support.api.js
@@ -89,6 +90,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   ├── AgencySection.vue
     │   │   │   ├── DuplicatePanel.vue
     │   │   │   ├── SlaTag.vue
+    │   │   │   ├── DisputeDecisionForm.vue
     │   │   │   ├── StaffSection.vue
     │   │   │   └── VerifyForm.vue
     │   │   ├── notifikasi/
@@ -121,6 +123,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │       ├── ReportMiniMap.vue
     │   │       ├── ProgressSteps.vue
     │   │       ├── DetailInfoCard.vue
+    │   │       ├── ConfirmationHistory.vue
     │   │       ├── ProgressFileField.vue
     │   │       ├── ReportMiniMap.vue
     │   │       ├── LaporanSearchCard.vue
@@ -187,6 +190,7 @@ Dokumen ini menjelaskan struktur direktori frontend LaporWarga beserta fungsi se
     │   │   │   ├── VerifikasiLaporanPage.vue
     │   │   │   ├── KelolaLaporanPage.vue
     │   │   │   ├── DataInstansiPage.vue
+    │   │   │   ├── SanggahanPage.vue
     │   │   │   ├── DataMasterPage.vue
     │   │   │   ├── DashboardPage.vue
     │   │   │   ├── ModerasiKomentarPage.vue
