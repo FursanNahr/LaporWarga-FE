@@ -12,6 +12,7 @@ export default {
     { path: 'verifikasi', name: 'admin-verifikasi-laporan', component: () => import('@/pages/admin/VerifikasiLaporanPage.vue') },
     { path: 'laporan', name: 'admin-kelola-laporan', component: () => import('@/pages/admin/KelolaLaporanPage.vue') },
     { path: 'laporan/:id', name: 'admin-detail-laporan', component: () => import('@/pages/admin/DetailLaporanAdminPage.vue') },
+    { path: 'sanggahan', name: 'admin-sanggahan', component: () => import('@/pages/admin/SanggahanPage.vue') },
     { path: 'komentar', name: 'admin-moderasi-komentar', component: () => import('@/pages/admin/ModerasiKomentarPage.vue') },
     { path: 'instansi', name: 'admin-data-instansi', component: () => import('@/pages/admin/DataInstansiPage.vue') },
     { path: 'master', name: 'admin-data-master', component: () => import('@/pages/admin/DataMasterPage.vue') },

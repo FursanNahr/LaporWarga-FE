@@ -15,6 +15,8 @@ const BADGE = {
   DITERUSKAN: 'bg-indigo-100 text-indigo-800',
   DALAM_PENANGANAN: 'bg-amber-100 text-amber-800',
   SELESAI: 'bg-lime/60 text-emerald-900',
+  MENUNGGU_KONFIRMASI: 'bg-orange-100 text-orange-900',
+  DISANGGAH: 'bg-rose-100 text-rose-800',
   MENUNGGU_VERIFIKASI: 'bg-sky-100 text-sky-800',
 }
 

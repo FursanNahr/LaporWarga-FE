@@ -15,6 +15,7 @@ import {
   Plus,
   ScrollText,
   Timer,
+  TriangleAlert,
   User,
 } from 'lucide-vue-next'
 import { useAuth } from '@/composables/useAuth'
@@ -68,6 +69,7 @@ const MENUS = {
       items: [
         { label: 'Verifikasi laporan', to: 'admin-verifikasi-laporan', icon: ClipboardCheck },
         { label: 'Kelola laporan', to: 'admin-kelola-laporan', icon: FileText },
+        { label: 'Sanggahan', to: 'admin-sanggahan', icon: TriangleAlert },
         { label: 'Moderasi komentar', to: 'admin-moderasi-komentar', icon: MessageSquare },
       ],
     },

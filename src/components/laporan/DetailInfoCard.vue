@@ -21,7 +21,9 @@ const category = computed(() => {
 })
 
 const sla = computed(() => props.report.sla ?? null)
-const isFinished = computed(() => props.report.status === REPORT_STATUS.SELESAI)
+const isFinished = computed(() =>
+  [REPORT_STATUS.SELESAI, REPORT_STATUS.MENUNGGU_KONFIRMASI].includes(props.report.status),
+)
 
 const estimate = computed(() => {
   if (!sla.value?.dueAt || isFinished.value) return ''

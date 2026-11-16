@@ -17,6 +17,8 @@ const TONE = {
   [REPORT_STATUS.DITOLAK]: 'bg-red-100 text-red-800',
   [REPORT_STATUS.DITERUSKAN]: 'bg-violet-100 text-violet-800',
   [REPORT_STATUS.DALAM_PENANGANAN]: 'bg-blue-100 text-blue-800',
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: 'bg-orange-100 text-orange-900',
+  [REPORT_STATUS.DISANGGAH]: 'bg-rose-100 text-rose-800',
   [REPORT_STATUS.SELESAI]: 'bg-lime/60 text-emerald-900',
 }
 const LABEL = {

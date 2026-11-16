@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { ArrowRight, Check, CircleCheck, Clock, Wrench, X } from 'lucide-vue-next'
+import { ArrowRight, Check, CircleCheck, Clock, TriangleAlert, Wrench, X } from 'lucide-vue-next'
 import { assetUrl } from '@/api'
 import { REPORT_STATUS, STATUS_META } from '@/constants/status'
 import { formatDateTime } from '@/utils/formatDate'
@@ -38,17 +38,22 @@ const NODE_ICON = {
   [REPORT_STATUS.DITOLAK]: X,
   [REPORT_STATUS.DITERUSKAN]: ArrowRight,
   [REPORT_STATUS.DALAM_PENANGANAN]: Wrench,
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: Clock,
+  [REPORT_STATUS.DISANGGAH]: TriangleAlert,
   [REPORT_STATUS.SELESAI]: CircleCheck,
 }
 const NODE_TONE = {
   [REPORT_STATUS.SELESAI]: 'border-emerald-600 bg-emerald-600 text-white',
   [REPORT_STATUS.DITOLAK]: 'border-red-300 bg-red-50 text-red-700',
+  [REPORT_STATUS.DISANGGAH]: 'border-red-300 bg-red-50 text-red-700',
 }
+// Status yang selalu merah, juga di gaya card.
+const ALERT_STATUSES = [REPORT_STATUS.DITOLAK, REPORT_STATUS.DISANGGAH]
 const nodeIcon = (item) => NODE_ICON[item.toStatus] ?? Clock
 function nodeTone(item) {
   if (!isCard.value) return NODE_TONE[item.toStatus] ?? 'border-sand-dark bg-white text-maroon'
-  // Gaya card: semua tahap hijau, tahap berjalan lebih gelap, ditolak tetap merah.
-  if (item.toStatus === REPORT_STATUS.DITOLAK) return NODE_TONE[REPORT_STATUS.DITOLAK]
+  // Gaya card: semua tahap hijau, tahap berjalan lebih gelap, ditolak/disanggah tetap merah.
+  if (ALERT_STATUSES.includes(item.toStatus)) return NODE_TONE[item.toStatus]
   return item.id === currentId.value
     ? 'border-emerald-700 bg-emerald-700 text-white'
     : 'border-emerald-500 bg-emerald-500 text-white'
@@ -60,7 +65,9 @@ const DEFAULT_NOTE = {
   [REPORT_STATUS.DITOLAK]: 'Laporan ditolak.',
   [REPORT_STATUS.DITERUSKAN]: 'Laporan diteruskan ke instansi yang menangani.',
   [REPORT_STATUS.DALAM_PENANGANAN]: 'Petugas mulai menangani laporan.',
-  [REPORT_STATUS.SELESAI]: 'Laporan telah ditangani dan diselesaikan oleh instansi.',
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: 'Instansi menandai laporan selesai. Menunggu konfirmasi pelapor.',
+  [REPORT_STATUS.DISANGGAH]: 'Pelapor menyatakan hasil belum beres. Menunggu keputusan admin.',
+  [REPORT_STATUS.SELESAI]: 'Laporan telah ditangani dan diselesaikan.',
 }
 function noteOf(item) {
   if (item.note) return item.note
@@ -72,6 +79,8 @@ function noteOf(item) {
 // Judul tahap untuk variant card.
 const CARD_TITLE = {
   [REPORT_STATUS.DITERUSKAN]: 'Diteruskan ke Instansi',
+  [REPORT_STATUS.MENUNGGU_KONFIRMASI]: 'Menunggu Konfirmasi Pelapor',
+  [REPORT_STATUS.DISANGGAH]: 'Disanggah Pelapor',
 }
 function cardTitle(item) {
   if (item.fromStatus && item.fromStatus === item.toStatus) return 'Catatan Progres'

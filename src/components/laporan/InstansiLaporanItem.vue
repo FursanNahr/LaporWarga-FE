@@ -21,7 +21,7 @@ const reportedAt = computed(() => {
 
 // Empat langkah yang terlihat instansi. Laporan di daftar ini minimal sudah "Diteruskan".
 const STEP_LABELS = ['Menunggu Verifikasi', 'Diteruskan ke Instansi', 'Dalam Penanganan', 'Selesai']
-const CURRENT_INDEX = { DITERUSKAN: 1, DALAM_PENANGANAN: 2, SELESAI: 3 }
+const CURRENT_INDEX = { DITERUSKAN: 1, DALAM_PENANGANAN: 2, DISANGGAH: 2, MENUNGGU_KONFIRMASI: 3, SELESAI: 3 }
 const steps = computed(() => {
   const current = CURRENT_INDEX[props.report.status] ?? 1
   const allDone = props.report.status === 'SELESAI'
@@ -34,6 +34,8 @@ const steps = computed(() => {
 const BADGE = {
   DITERUSKAN: 'bg-indigo-100 text-indigo-800',
   DALAM_PENANGANAN: 'bg-amber-100 text-amber-800',
+  MENUNGGU_KONFIRMASI: 'bg-orange-100 text-orange-900',
+  DISANGGAH: 'bg-rose-100 text-rose-800',
   SELESAI: 'bg-lime/60 text-emerald-900',
 }
 const statusLabel = computed(() => STATUS_META[props.report.status]?.label ?? props.report.status)
