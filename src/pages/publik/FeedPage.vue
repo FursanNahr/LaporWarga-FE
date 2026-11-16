@@ -45,6 +45,7 @@ const params = computed(() => {
   if (location.value === 'nearby' && coords.value) {
     result.lat = coords.value.latitude
     result.lng = coords.value.longitude
+    result.radius = 10000 // 10 km (maksimal backend) agar cakupan area kota optimal
   } else if (location.value.startsWith('district:')) {
     result.districtId = location.value.slice('district:'.length)
   }
@@ -103,9 +104,54 @@ const toOptions = (body) => {
 }
 
 async function loadOptions() {
-  const [agencyResult, districtResult] = await Promise.allSettled([api.get('/agencies'), api.get('/districts')])
-  if (agencyResult.status === 'fulfilled') agencies.value = toOptions(agencyResult.value.data)
+  const [categoryResult, districtResult] = await Promise.allSettled([
+    api.get('/categories'),
+    api.get('/districts'),
+  ])
+  if (categoryResult.status === 'fulfilled') {
+    const list = categoryResult.value.data?.data ?? []
+    const agencyMap = new Map()
+    for (const cat of list) {
+      for (const sub of cat.subcategories ?? []) {
+        if (sub.agency?.id && !agencyMap.has(sub.agency.id)) {
+          agencyMap.set(sub.agency.id, { id: sub.agency.id, name: sub.agency.name })
+        }
+      }
+    }
+    agencies.value = Array.from(agencyMap.values())
+  }
   if (districtResult.status === 'fulfilled') districts.value = toOptions(districtResult.value.data)
+}
+
+// ---- Trending di Bandung (data riil diurutkan upvotes terbanyak) -----------------
+const trendingReports = ref([])
+const loadingTrending = ref(false)
+
+async function loadTrending() {
+  loadingTrending.value = true
+  try {
+    const res = await laporanApi.list({ limit: 30 })
+    const list = Array.isArray(res.data?.data) ? res.data.data : []
+    const sorted = [...list].sort((a, b) => {
+      const upA = a.stats?.upvotes ?? 0
+      const upB = b.stats?.upvotes ?? 0
+      if (upB !== upA) return upB - upA
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
+    trendingReports.value = sorted.slice(0, 5).map((r) => {
+      const type = r.subcategory?.name ?? 'Laporan'
+      const title = r.title || (r.address ? `${type} di ${r.address}` : r.description || type)
+      return {
+        id: r.id,
+        title,
+        upvotes: r.stats?.upvotes ?? 0,
+      }
+    })
+  } catch {
+    trendingReports.value = []
+  } finally {
+    loadingTrending.value = false
+  }
 }
 
 // ---- Tombol "Buat laporan" (untuk tamu; warga sudah punya di sidebar) ---------------
@@ -162,6 +208,7 @@ function startLoading() {
 
 onMounted(async () => {
   loadOptions()
+  loadTrending()
 
   if ('IntersectionObserver' in window && sentinel.value) {
     observer = new IntersectionObserver(
@@ -313,7 +360,12 @@ onBeforeUnmount(() => {
         <p v-if="showEnd" class="py-6 text-center text-sm text-maroon/70">Kamu sudah melihat semua laporan.</p>
       </section>
 
-      <FeedSidePanel />
+      <FeedSidePanel
+        :trending="trendingReports"
+        :reports="items"
+        :user-coords="coords"
+        :loading-trending="loadingTrending"
+      />
     </div>
   </div>
 </template> 

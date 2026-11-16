@@ -17,6 +17,7 @@ import {
 import { assetUrl } from '@/api'
 import { supportApi } from '@/api/support.api'
 import { useAuth } from '@/composables/useAuth'
+import { useBookmarks } from '@/composables/useBookmarks'
 import { ROLES } from '@/constants/roles'
 import { REPORT_STATUS, STATUS_META } from '@/constants/status'
 import { timeAgo } from '@/utils/formatDate'
@@ -144,12 +145,13 @@ async function toggle(kind) {
   }
 }
 
-// ---- Simpan (bookmark) ---------------------------------------------------------
-// DUMMY: baru tersimpan di kartu ini. Sambungkan ke BE kalau endpoint simpan laporan sudah ada.
-const saved = ref(false)
+// ---- Simpan (bookmark) persisten di localStorage -----------------------------
+const { isBookmarked, toggleBookmark } = useBookmarks()
+const saved = computed(() => isBookmarked(props.report.id))
+
 function toggleSave() {
   if (!isLoggedIn.value) return goToLogin()
-  saved.value = !saved.value
+  toggleBookmark(props.report.id)
 }
 
 const statButton =
