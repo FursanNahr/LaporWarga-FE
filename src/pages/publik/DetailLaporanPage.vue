@@ -18,6 +18,7 @@ import { assetUrl } from '@/api'
 import { laporanApi } from '@/api/laporan.api'
 import { supportApi } from '@/api/support.api'
 import { useAuth } from '@/composables/useAuth'
+import { useBookmarks } from '@/composables/useBookmarks'
 import { useToast } from '@/composables/useToast'
 import { ROLES } from '@/constants/roles'
 import { REPORT_STATUS } from '@/constants/status'
@@ -194,11 +195,12 @@ const canConfirm = computed(
 
 // ---- Simpan & menu "⋯" ------------------------------------------------------------
 
-// DUMMY: bookmark baru tersimpan di halaman ini. Sambungkan ke BE kalau endpoint simpan sudah ada.
-const saved = ref(false)
+const { isBookmarked, toggleBookmark } = useBookmarks()
+const saved = computed(() => isBookmarked(report.value?.id))
+
 function toggleSave() {
   if (!isLoggedIn.value) return goToLogin()
-  saved.value = !saved.value
+  if (report.value?.id) toggleBookmark(report.value.id)
 }
 
 const menuOpen = ref(false)
